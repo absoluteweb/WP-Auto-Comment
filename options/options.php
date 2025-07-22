@@ -111,13 +111,30 @@ function acg_options_page() {
                         
                         <div style="background: #f9f9f9; padding: 15px; border-radius: 5px; margin: 10px 0;">
                             <h4>📊 Analyse de votre site :</h4>
-                            <p><strong>Secteur détecté :</strong> <?php echo ucfirst($site_context['detected_niche']); ?></p>
+                            <p><strong>Secteur détecté :</strong> <span id="detected-niche"><?php echo ucfirst($site_context['detected_niche']); ?></span>
+                                <?php 
+                                $cache_timestamp = get_option('acg_cached_site_niche_timestamp', 0);
+                                $use_ai_detection = get_option('acg_use_ai_niche_detection', 1);
+                                if ($cache_timestamp > 0 && $use_ai_detection): 
+                                ?>
+                                    <small style="color: #666;">(Analysé par OpenAI le <?php echo date('d/m/Y à H:i', $cache_timestamp); ?>)</small>
+                                <?php else: ?>
+                                    <small style="color: #666;">(Détection locale par mots-clés)</small>
+                                <?php endif; ?>
+                            </p>
                             <?php if (!empty($site_context['main_categories'])): ?>
-                                <p><strong>Principales catégories :</strong> <?php echo implode(', ', array_slice($site_context['main_categories'], 0, 5)); ?></p>
+                                <p><strong>Principales catégories :</strong> <span id="main-categories"><?php echo implode(', ', array_slice($site_context['main_categories'], 0, 5)); ?></span></p>
                             <?php endif; ?>
                             <?php if (!empty($site_context['popular_tags'])): ?>
-                                <p><strong>Tags populaires :</strong> <?php echo implode(', ', array_slice($site_context['popular_tags'], 0, 8)); ?></p>
+                                <p><strong>Tags populaires :</strong> <span id="popular-tags"><?php echo implode(', ', array_slice($site_context['popular_tags'], 0, 8)); ?></span></p>
                             <?php endif; ?>
+                            
+                            <div style="margin-top: 15px;">
+                                <button type="button" id="refresh-niche-detection" class="button action" style="margin-right: 10px;">
+                                    🔄 Relancer la détection
+                                </button>
+                                <span id="refresh-niche-status" style="color: #666; font-style: italic;"></span>
+                            </div>
                         </div>
                     </td>
                 </tr>
@@ -132,6 +149,27 @@ function acg_options_page() {
                             <p style="color: #0073aa;"><strong>✓ Recommandé :</strong> Votre site semble spécialisé en <em><?php echo $site_context['detected_niche']; ?></em>, la contextualisation améliorera la pertinence des commentaires.</p>
                         <?php else: ?>
                             <p style="color: #666;"><strong>ℹ️ Info :</strong> Aucune thématique spécifique détectée. Les personas seront générés de manière généraliste.</p>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+
+                <tr valign="top">
+                    <th scope="row">Méthode de détection de thématique</th>
+                    <td>
+                        <label>
+                            <input type="radio" name="acg_use_ai_niche_detection" value="1" <?php checked(get_option('acg_use_ai_niche_detection', 1), 1); ?> />
+                            <strong>Analyse OpenAI (Recommandé)</strong>
+                        </label>
+                        <p style="margin: 5px 0 10px 25px; color: #666;">Plus précise, analyse le contexte global du contenu. <em>Utilise votre clé API OpenAI.</em></p>
+                        
+                        <label>
+                            <input type="radio" name="acg_use_ai_niche_detection" value="0" <?php checked(get_option('acg_use_ai_niche_detection', 1), 0); ?> />
+                            <strong>Détection par mots-clés</strong>
+                        </label>
+                        <p style="margin: 5px 0 10px 25px; color: #666;">Méthode locale basée sur les catégories et tags. Gratuite mais moins précise.</p>
+                        
+                        <?php if (get_option('acg_use_ai_niche_detection', 1) && empty(get_option('acg_api_key', ''))): ?>
+                            <p style="color: #d63638;"><strong>⚠️ Attention :</strong> Vous devez configurer votre clé API OpenAI pour utiliser l'analyse IA.</p>
                         <?php endif; ?>
                     </td>
                 </tr>
@@ -384,6 +422,68 @@ function acg_options_page() {
     
 </script>
 
+<script>
+    // Gestion du bouton de re-détection de niche
+    document.getElementById('refresh-niche-detection').addEventListener('click', function() {
+        var button = this;
+        var statusSpan = document.getElementById('refresh-niche-status');
+        
+        // Désactiver le bouton et afficher le statut
+        button.disabled = true;
+        button.textContent = '🔄 Analyse en cours...';
+        statusSpan.textContent = 'Analyse de votre site par OpenAI...';
+        statusSpan.style.color = '#0073aa';
+        
+        jQuery.ajax({
+            url: '<?php echo admin_url('admin-ajax.php'); ?>',
+            type: 'POST',
+            data: {
+                action: 'acg_refresh_niche_detection',
+                nonce: '<?php echo wp_create_nonce('refresh_niche_nonce'); ?>'
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Mettre à jour l'affichage
+                    document.getElementById('detected-niche').textContent = response.data.niche.charAt(0).toUpperCase() + response.data.niche.slice(1);
+                    
+                    if (response.data.categories && response.data.categories.length > 0) {
+                        document.getElementById('main-categories').textContent = response.data.categories.join(', ');
+                    }
+                    
+                    if (response.data.tags && response.data.tags.length > 0) {
+                        document.getElementById('popular-tags').textContent = response.data.tags.join(', ');
+                    }
+                    
+                    statusSpan.textContent = '✅ Détection mise à jour avec succès !';
+                    statusSpan.style.color = '#00a32a';
+                    
+                    // Actualiser automatiquement la page après 2 secondes pour voir les nouveaux indicateurs de cache
+                    setTimeout(function() {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    statusSpan.textContent = '❌ Erreur : ' + (response.data.message || 'Impossible de détecter la niche');
+                    statusSpan.style.color = '#d63638';
+                }
+            },
+            error: function() {
+                statusSpan.textContent = '❌ Erreur de communication avec le serveur';
+                statusSpan.style.color = '#d63638';
+            },
+            complete: function() {
+                // Réactiver le bouton
+                button.disabled = false;
+                button.textContent = '🔄 Relancer la détection';
+                
+                // Effacer le statut après 5 secondes
+                setTimeout(function() {
+                    statusSpan.textContent = '';
+                }, 5000);
+            }
+        });
+    });
+</script>
+
 <?php
 }
 
@@ -453,5 +553,6 @@ function acg_register_settings() {
     register_setting('acg_options_group', 'acg_auto_comment_default_mode');
     register_setting('acg_options_group', 'acg_auto_comment_default_frequency');
     register_setting('acg_options_group', 'acg_use_site_context');
+    register_setting('acg_options_group', 'acg_use_ai_niche_detection');
 }
 add_action('admin_init', 'acg_register_settings');

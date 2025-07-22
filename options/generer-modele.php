@@ -65,14 +65,106 @@ function acg_analyze_site_context() {
     $context['recent_titles'] = $titles_sample;
     $context['content_sample'] = wp_trim_words($content_sample, 100);
     
-    // Détecter le secteur probable
-    $context['detected_niche'] = acg_detect_site_niche($context);
+    // Détecter le secteur avec OpenAI (avec cache) ou méthode locale
+    $context['detected_niche'] = acg_detect_site_niche_with_ai($context);
     
     return $context;
 }
 
-// Détecter le secteur/niche du site
-function acg_detect_site_niche($context) {
+// Détection de niche via OpenAI (avec cache)
+function acg_detect_site_niche_with_ai($context) {
+    $api_key = get_option('acg_api_key', '');
+    
+    // Vérifier si on a un résultat en cache
+    $cached_niche = get_option('acg_cached_site_niche', '');
+    $cache_timestamp = get_option('acg_cached_site_niche_timestamp', 0);
+    $use_ai_detection = get_option('acg_use_ai_niche_detection', 1);
+    
+    // Si cache valide (moins de 30 jours) et détection AI activée, utiliser le cache
+    if (!empty($cached_niche) && $use_ai_detection && (time() - $cache_timestamp) < (30 * 24 * 3600)) {
+        return $cached_niche;
+    }
+    
+    // Si pas de clé API ou détection AI désactivée, utiliser la méthode locale
+    if (empty($api_key) || !$use_ai_detection) {
+        return acg_detect_site_niche_local($context);
+    }
+    
+    // Préparer les données pour l'analyse OpenAI
+    $analysis_data = "SITE À ANALYSER :\n";
+    $analysis_data .= "Nom du site : " . $context['site_name'] . "\n";
+    $analysis_data .= "Description : " . $context['site_description'] . "\n";
+    $analysis_data .= "Principales catégories : " . implode(', ', $context['main_categories']) . "\n";
+    if (!empty($context['popular_tags'])) {
+        $analysis_data .= "Tags populaires : " . implode(', ', $context['popular_tags']) . "\n";
+    }
+    $analysis_data .= "Échantillon de titres d'articles : " . wp_trim_words($context['recent_titles'], 50) . "\n";
+    $analysis_data .= "Échantillon de contenu : " . $context['content_sample'];
+    
+    $prompt = 'Analyse ce site web et détermine sa thématique principale. Réponds UNIQUEMENT avec un des secteurs suivants (un seul mot) :
+
+SECTEURS DISPONIBLES :
+- cuisine (alimentation, gastronomie, recettes, nutrition culinaire)
+- technologie (informatique, développement, digital, applications, gadgets)  
+- lifestyle (mode, beauté, voyage, décoration, bien-être général)
+- santé (médecine, fitness, nutrition santé, thérapie, soins)
+- business (entreprise, marketing, finance, économie, entrepreneuriat)
+- éducation (formation, apprentissage, enseignement, pédagogie)
+- famille (enfants, parentalité, maternité, éducation familiale)
+- loisirs (hobby, divertissement, culture, art, sport récréatif)
+- général (si aucun secteur ne domine clairement)
+
+DONNÉES DU SITE :
+' . $analysis_data . '
+
+Réponds UNIQUEMENT avec le nom du secteur le plus approprié (un seul mot, en minuscules) :';
+
+    $response = wp_remote_post('https://api.openai.com/v1/chat/completions', [
+        'timeout' => 60,
+        'headers' => [
+            'Authorization' => 'Bearer ' . $api_key,
+            'Content-Type' => 'application/json',
+        ],
+        'body' => json_encode([
+            'model' => 'gpt-4o-mini',
+            'messages' => [
+                ['role' => 'user', 'content' => $prompt]
+            ],
+            'temperature' => 0.1, // Faible température pour plus de cohérence
+            'max_tokens' => 20
+        ]),
+    ]);
+
+    if (is_wp_error($response)) {
+        error_log('Erreur détection niche OpenAI: ' . $response->get_error_message());
+        return acg_detect_site_niche_local($context);
+    }
+
+    $body = wp_remote_retrieve_body($response);
+    $data = json_decode($body, true);
+
+    if (isset($data['choices'][0]['message']['content'])) {
+        $detected_niche = trim(strtolower($data['choices'][0]['message']['content']));
+        
+        // Valider que la réponse est dans nos secteurs autorisés
+        $valid_niches = ['cuisine', 'technologie', 'lifestyle', 'santé', 'business', 'éducation', 'famille', 'loisirs', 'général'];
+        
+        if (in_array($detected_niche, $valid_niches)) {
+            // Sauvegarder en cache
+            update_option('acg_cached_site_niche', $detected_niche);
+            update_option('acg_cached_site_niche_timestamp', time());
+            
+            return $detected_niche;
+        }
+    }
+    
+    // En cas d'échec, utiliser la méthode locale
+    error_log('Détection OpenAI échouée, utilisation méthode locale');
+    return acg_detect_site_niche_local($context);
+}
+
+// Détection locale (ancienne méthode) utilisée comme fallback
+function acg_detect_site_niche_local($context) {
     $categories_text = strtolower(implode(' ', $context['main_categories']));
     $tags_text = strtolower(implode(' ', $context['popular_tags']));
     $description_text = strtolower($context['site_description']);
@@ -102,6 +194,34 @@ function acg_detect_site_niche($context) {
     // Retourner le secteur avec le meilleur score
     $detected_niche = array_search(max($scores), $scores);
     return max($scores) > 0 ? $detected_niche : 'général';
+}
+
+// AJAX pour relancer la détection de niche
+function acg_refresh_niche_detection() {
+    check_ajax_referer('refresh_niche_nonce', 'nonce');
+    
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'Permissions insuffisantes']);
+    }
+    
+    // Supprimer le cache
+    delete_option('acg_cached_site_niche');
+    delete_option('acg_cached_site_niche_timestamp');
+    
+    // Relancer l'analyse
+    $context = acg_analyze_site_context();
+    
+    wp_send_json_success([
+        'niche' => $context['detected_niche'],
+        'categories' => $context['main_categories'],
+        'tags' => array_slice($context['popular_tags'], 0, 8)
+    ]);
+}
+add_action('wp_ajax_acg_refresh_niche_detection', 'acg_refresh_niche_detection');
+
+// Détecter le secteur/niche du site (fonction maintenue pour compatibilité)
+function acg_detect_site_niche($context) {
+    return acg_detect_site_niche_with_ai($context);
 }
 
 // AJAX pour générer les templates

@@ -2,29 +2,59 @@
 
 Extension WordPress qui automatise la génération de commentaires sur les articles de blog en utilisant l'intelligence artificielle OpenAI.
 
-## 🆕 Nouveautés - Contextualisation des Personas
+## 🆕 Nouveautés - Détection OpenAI améliorée
 
-**Version améliorée** : Les personas sont maintenant automatiquement adaptés à la thématique de votre site !
+**Version 2.3** : Détection de thématique ultra-précise avec OpenAI !
 
-### Fonctionnalités de contextualisation :
+### 🎯 Problème résolu :
+- **Avant** : Détection par mots-clés parfois imprécise (site santé classé en "technologie")
+- **Maintenant** : Analyse contextuelle OpenAI pour une précision maximale
 
-- **Analyse automatique** de votre site (catégories, tags, contenu)
-- **Détection de secteur** parmi 8 thématiques : cuisine, technologie, lifestyle, santé, business, éducation, famille, loisirs
-- **Adaptation des personas** : professions et styles d'écriture cohérents avec votre niche
-- **Interface visuelle** : aperçu de l'analyse dans l'admin WordPress
-- **Contrôle total** : activation/désactivation de la contextualisation
+### 🚀 Nouvelles fonctionnalités :
 
-### Exemple d'amélioration :
+#### **Détection OpenAI intelligente :**
+- **Analyse contextuelle** : OpenAI examine le contenu réel, pas seulement les mots-clés
+- **Précision maximale** : Comprend les nuances et le contexte global du site
+- **8 secteurs détectés** : cuisine, technologie, lifestyle, santé, business, éducation, famille, loisirs
 
-**Avant** : Persona générique → "Jean, 30 ans, comptable"
-**Après** : Site de cuisine → "Marie, 28 ans, chef pâtissière passionnée de nouvelles saveurs"
+#### **Système de cache optimisé :**
+- **Cache 30 jours** : Une seule analyse OpenAI par mois
+- **Économie d'API** : Pas de requête répétée à chaque génération de persona
+- **Indicateur visuel** : Affichage de la date de dernière analyse
+
+#### **Contrôle total :**
+- **Bouton "🔄 Relancer la détection"** : Re-analyse immédiate si votre site évolue
+- **Choix de méthode** : OpenAI (recommandé) ou mots-clés locaux (gratuit)
+- **Fallback automatique** : Si problème API, bascule vers la méthode locale
+
+### 🔧 Interface améliorée :
+
+```
+📊 Analyse de votre site :
+Secteur détecté : Santé (Analysé par OpenAI le 15/01/2025 à 14:30)
+Principales catégories : Nutrition, Fitness, Bien-être
+Tags populaires : santé, sport, alimentation, médecine
+
+[🔄 Relancer la détection] ✅ Détection mise à jour avec succès !
+```
+
+### 💡 Exemple concret :
+
+**Site santé mal détecté :**
+- **Ancien système** : "technologie" (car mots comme "digital", "app santé")
+- **Nouveau système OpenAI** : "santé" (comprend le contexte global)
+
+**Résultat :**
+- **Personas avant** : "Thomas, développeur web, amateur de gadgets"
+- **Personas après** : "Dr. Sarah, nutritionniste, spécialisée en bien-être"
 
 ## Fonctionnalités principales
 
 - 🤖 **Génération automatique** de commentaires via OpenAI GPT
 - 👥 **Système de personas** varié et contextuel  
+- 🎯 **Détection OpenAI précise** de la thématique du site
+- ⚡ **Cache intelligent** pour optimiser les coûts API
 - ⏰ **Planification flexible** : par durée ou par visites
-- 🎯 **Ciblage intelligent** : commentaires adaptés au contenu
 - 📊 **Interface complète** : gestion depuis l'admin WordPress
 - 🔄 **Mise à jour automatique** via GitHub
 
@@ -32,7 +62,7 @@ Extension WordPress qui automatise la génération de commentaires sur les artic
 
 1. Téléchargez et activez le plugin
 2. Configurez votre clé API OpenAI dans Réglages → WP Auto Comment
-3. Activez la contextualisation automatique (recommandé)
+3. **Nouveau** : Choisissez "Analyse OpenAI" pour une détection précise
 4. Générez des modèles de personas adaptés à votre thématique
 5. Activez les commentaires automatiques sur vos articles
 
@@ -44,9 +74,10 @@ Extension WordPress qui automatise la génération de commentaires sur les artic
 - Nombre de mots par commentaire (5-20)
 
 ### Contextualisation des personas
-- **Analyse automatique** : Le plugin détecte votre secteur d'activité
-- **Adaptation intelligente** : Les personas générés correspondent à votre audience
-- **Contrôle manuel** : Possibilité de désactiver la contextualisation
+- **Analyse automatique** : Le plugin détecte votre secteur d'activité avec OpenAI
+- **Cache optimisé** : Une seule analyse par mois pour économiser l'API
+- **Bouton de re-détection** : Relancez l'analyse si votre site évolue
+- **Fallback local** : Méthode gratuite par mots-clés si besoin
 
 ### Modes de publication
 - **Par durée** : X commentaires toutes les Y minutes
@@ -56,7 +87,8 @@ Extension WordPress qui automatise la génération de commentaires sur les artic
 
 1. **Génération manuelle** : Sélectionnez des articles et utilisez l'action en lot
 2. **Génération automatique** : Cochez "Commentaire automatique" sur vos articles
-3. **Personas contextuels** : Générés automatiquement selon votre thématique
+3. **Personas contextuels** : Générés automatiquement selon votre thématique détectée par OpenAI
+4. **Re-détection** : Utilisez le bouton "🔄 Relancer la détection" si votre site change de thématique
 
 ## Sécurité
 
@@ -71,4 +103,4 @@ Pour toute question ou suggestion d'amélioration, contactez l'équipe de dével
 
 ---
 
-*Plugin développé par Kevin BENABDELHAK - Version 2.2+*
+*Plugin développé par Kevin BENABDELHAK - Version 2.3+*
