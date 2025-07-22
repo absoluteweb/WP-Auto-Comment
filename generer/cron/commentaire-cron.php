@@ -57,25 +57,13 @@ function acg_cron_generate_comments() {
     if ($comment_publish_mode === 'visits') {
         $comments_per_trigger = get_option('acg_comment_per_ip', 1);
         $interval_per_ip = get_option('acg_interval_per_ip', 1);
-        $user_ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
         
-        // Compteur global d'IP uniques
+        // ✅ CORRECTION : Ne plus récupérer l'IP ici (c'était l'IP du serveur)
+        // Les vraies IP des visiteurs sont collectées côté front-end via acg_collect_visitor_ip()
+        
+        // Récupérer le compteur global d'IP uniques collectées côté front-end
         $global_ip_count = get_option('acg_global_ip_count', 0);
         $last_ip_list = get_option('acg_last_ip_list', []);
-        
-        // Vérifier si cette IP est nouvelle
-        if (!in_array($user_ip, $last_ip_list)) {
-            $last_ip_list[] = $user_ip;
-            $global_ip_count++;
-            
-            // Garder seulement les X dernières IP pour éviter une liste trop longue
-            if (count($last_ip_list) > ($interval_per_ip * 2)) {
-                $last_ip_list = array_slice($last_ip_list, -$interval_per_ip);
-            }
-            
-            update_option('acg_global_ip_count', $global_ip_count);
-            update_option('acg_last_ip_list', $last_ip_list);
-        }
         
         // Vérifier si on doit publier des commentaires
         if ($global_ip_count >= $interval_per_ip) {
@@ -104,7 +92,7 @@ function acg_cron_generate_comments() {
                 
                 // Créer un commentaire pour chaque article sélectionné
                 foreach ($selected_posts as $post) {
-                    create_comment(
+                    $success = create_comment(
                         $post->ID, 
                         $post->post_content, 
                         $min_words, 
@@ -114,14 +102,17 @@ function acg_cron_generate_comments() {
                         $include_author_names
                     );
                     
-                    error_log('[WP Auto Comment] Commentaire ajouté à l\'article ID ' . $post->ID . ' (mode IP)');
+                    if ($success) {
+                        error_log('[WP Auto Comment] Commentaire ajouté à l\'article ID ' . $post->ID . ' (mode IP - vraies visites)');
+                    }
                 }
                 
-                // Réinitialiser le compteur
+                // Réinitialiser le compteur après génération
                 update_option('acg_global_ip_count', 0);
                 update_option('acg_last_ip_list', []);
+                update_option('acg_comments_triggered_time', time()); // Timestamp du dernier déclenchement
                 
-                error_log('[WP Auto Comment] ' . count($selected_posts) . ' commentaires générés pour ' . count($eligible_posts) . ' articles éligibles (mode IP)');
+                error_log('[WP Auto Comment] ' . count($selected_posts) . ' commentaires générés suite à ' . $global_ip_count . ' visites uniques');
             }
         }
         

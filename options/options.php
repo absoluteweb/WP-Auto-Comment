@@ -73,6 +73,7 @@ function acg_options_page() {
                         
                         <div style="background: #f0f8ff; padding: 12px; border-radius: 5px; border-left: 4px solid #0073aa; margin: 10px 0;">
                             <h4 style="margin: 0 0 8px 0;">🎯 Fonctionnement amélioré :</h4>
+                            <p style="margin: 5px 0;">• <strong>Collecte front-end authentique</strong> : Les IP sont récupérées lors des vraies visites des utilisateurs</p>
                             <p style="margin: 5px 0;">• <strong>Sélection aléatoire</strong> : Les commentaires sont ajoutés à des articles choisis au hasard parmi ceux ayant l'auto-commentaire activé</p>
                             <p style="margin: 5px 0;">• <strong>Distribution naturelle</strong> : Évite la systématisation en variant les articles concernés</p>
                             <p style="margin: 5px 0;">• <strong>Exemple</strong> : "2 commentaires / 15 IP" = 2 articles aléatoires recevront chacun 1 commentaire toutes les 15 visites uniques</p>
@@ -82,20 +83,56 @@ function acg_options_page() {
                         $global_ip_count = get_option('acg_global_ip_count', 0);
                         $last_ip_list = get_option('acg_last_ip_list', []);
                         $interval_per_ip = get_option('acg_interval_per_ip', 1);
+                        $last_visitor_time = get_option('acg_last_visitor_ip_time', 0);
+                        $last_comments_time = get_option('acg_comments_triggered_time', 0);
                         ?>
                         
                         <div style="background: #f9f9f9; padding: 12px; border-radius: 5px; margin: 10px 0;">
                             <h4 style="margin: 0 0 8px 0;">📊 Statut actuel :</h4>
                             <p style="margin: 5px 0;"><strong>IP uniques collectées :</strong> <span id="current-ip-count"><?php echo $global_ip_count; ?></span> / <?php echo $interval_per_ip; ?></p>
-                            <p style="margin: 5px 0;"><strong>Prochains commentaires dans :</strong> <?php echo max(0, $interval_per_ip - $global_ip_count); ?> IP</p>
-                            <?php if ($global_ip_count > 0): ?>
-                                <p style="margin: 5px 0; font-size: 12px; color: #666;">Dernières IP : <?php echo implode(', ', array_slice($last_ip_list, -3)); ?><?php echo count($last_ip_list) > 3 ? '...' : ''; ?></p>
+                            <p style="margin: 5px 0;"><strong>Prochains commentaires dans :</strong> <?php echo max(0, $interval_per_ip - $global_ip_count); ?> visites</p>
+                            
+                            <?php if ($last_visitor_time > 0): ?>
+                                <p style="margin: 5px 0; font-size: 12px; color: #666;">
+                                    <strong>Dernière visite détectée :</strong> <?php echo date('d/m/Y à H:i:s', $last_visitor_time); ?>
+                                </p>
+                            <?php endif; ?>
+                            
+                            <?php if ($last_comments_time > 0): ?>
+                                <p style="margin: 5px 0; font-size: 12px; color: #666;">
+                                    <strong>Derniers commentaires générés :</strong> <?php echo date('d/m/Y à H:i:s', $last_comments_time); ?>
+                                </p>
+                            <?php endif; ?>
+                            
+                            <?php if ($global_ip_count > 0 && !empty($last_ip_list)): ?>
+                                <p style="margin: 5px 0; font-size: 12px; color: #666;">
+                                    <strong>Dernières IP visiteurs :</strong> <?php 
+                                    $visible_ips = array_slice($last_ip_list, -3);
+                                    // Masquer partiellement les IP pour la confidentialité
+                                    $masked_ips = array_map(function($ip) {
+                                        $parts = explode('.', $ip);
+                                        if (count($parts) === 4) {
+                                            return $parts[0] . '.' . $parts[1] . '.***.' . $parts[3];
+                                        }
+                                        return substr($ip, 0, -4) . '****'; // IPv6 ou autre format
+                                    }, $visible_ips);
+                                    echo implode(', ', $masked_ips);
+                                    echo count($last_ip_list) > 3 ? '...' : '';
+                                    ?>
+                                </p>
                             <?php endif; ?>
                             
                             <button type="button" id="reset-ip-counter" class="button action" style="margin-top: 8px;">
                                 🔄 Réinitialiser le compteur IP
                             </button>
                             <span id="reset-ip-status" style="margin-left: 10px; font-style: italic;"></span>
+                            
+                            <div style="margin-top: 10px; padding: 8px; background: #e7f3ff; border-radius: 3px;">
+                                <p style="margin: 0; font-size: 11px; color: #0066cc;">
+                                    <strong>ℹ️ Note technique :</strong> Les IP sont collectées en temps réel lors des visites front-end. 
+                                    Compatible avec Cloudflare, proxies et load balancers. Les IP sont partiellement masquées pour la confidentialité.
+                                </p>
+                            </div>
                         </div>
                     </td>
                 </tr>
