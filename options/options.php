@@ -202,17 +202,7 @@ function acg_options_page() {
                                 <button type="button" id="refresh-niche-detection" class="button action" style="margin-right: 10px;">
                                     🔄 Relancer la détection
                                 </button>
-                                <button type="button" id="test-new-detection" class="button button-secondary" style="margin-right: 10px;">
-                                    🧪 Tester nouvelle détection
-                                </button>
                                 <span id="refresh-niche-status" style="color: #666; font-style: italic;"></span>
-                            </div>
-                            
-                            <div id="test-results" style="display: none; margin-top: 15px; padding: 10px; background: #f0f8ff; border-radius: 5px; border-left: 4px solid #0073aa;">
-                                <h4>🧪 Résultat du test :</h4>
-                                <p><strong>Avant :</strong> <span id="old-detection"></span></p>
-                                <p><strong>Maintenant :</strong> <span id="new-detection"></span></p>
-                                <p style="font-size: 12px; color: #666;">Ce test utilise la liste élargie des secteurs (13 au lieu de 9). Utilisez "Relancer la détection" pour appliquer définitivement le nouveau résultat.</p>
                             </div>
                         </div>
                     </td>
@@ -402,22 +392,6 @@ function acg_options_page() {
             </table>
             <?php submit_button(); ?>
         </form>
-        
-        <!-- Section de maintenance -->
-        <div style="margin-top: 30px; padding: 15px; background: #fff; border: 1px solid #ccd0d4; border-radius: 4px;">
-            <h2>🧹 Maintenance</h2>
-            <p>Cette version a supprimé la fonctionnalité de limite maximale de commentaires par article (qui était arbitraire et déroutante).</p>
-            <p>Vous pouvez nettoyer les anciennes données inutiles de votre base de données :</p>
-            
-            <button type="button" id="cleanup-deprecated-data" class="button action">
-                🗑️ Nettoyer les anciennes données
-            </button>
-            <span id="cleanup-status" style="margin-left: 10px; font-style: italic;"></span>
-            
-            <p style="font-size: 12px; color: #666; margin-top: 10px;">
-                <strong>Contrôle des commentaires :</strong> Utilisez maintenant le bouton on/off "Commentaire automatique" sur chaque article pour contrôler la génération. Plus simple et plus clair !
-            </p>
-        </div>
     </div>
 
 <script>
@@ -449,100 +423,61 @@ function acg_options_page() {
         });
     }
     bindRemoveButtons();
+    
     // Ajouter nouveau modèle
-    document.getElementById('add-writing-style-button').addEventListener('click', function () {
+    document.getElementById('add-writing-style-button').addEventListener('click', function() {
         var container = document.getElementById('writing-styles-container');
-        var nextIndex = container.querySelectorAll('.writing-style').length;
-        var div = document.createElement('div');
-        div.className = 'writing-style';
-        div.innerHTML = `
-          <div style="display: flex; flex-direction: column; gap: 8px;">
-            <span>Description des auteurs des commentaires (identité, style d'écriture..)</span>
-            <textarea name="acg_writing_styles[`+nextIndex+`]" rows="4" cols="50"></textarea>
-          </div>
-          <label>
-            <input type="checkbox" name="acg_include_author_names[`+nextIndex+`]" value="1" />
-            S'adresse directement à l'auteur de l'article
-          </label>
-          <button type="button" class="button action remove-style-button">Supprimer</button>
-        `;
-        container.appendChild(div);
+        var index = container.children.length;
+        var newStyleDiv = document.createElement('div');
+        newStyleDiv.className = 'writing-style';
+        newStyleDiv.innerHTML = '<div style="display: flex; flex-direction: column; gap: 8px;"><span>Description des auteurs des commentaires (identité, style d\'écriture..)</span><textarea name="acg_writing_styles[' + index + ']" rows="4" cols="50"></textarea></div><label><input type="checkbox" name="acg_include_author_names[' + index + ']" value="1" />S\'adresse directement à l\'auteur de l\'article</label><button type="button" class="button action remove-style-button">Supprimer</button>';
+        container.appendChild(newStyleDiv);
         bindRemoveButtons();
     });
-    // Génération IA (ajax, si activée côté serveur)
+
+    // Génération de templates
     document.getElementById('generate_templates_button').addEventListener('click', function() {
-        var count = parseInt(document.getElementById('template_count').value);
-        if (isNaN(count) || count < 1) {
-            alert("Veuillez entrer un nombre valide.");
-            return;
-        }
-        var generatedTemplatesContainer = document.getElementById('generated_templates');
-        generatedTemplatesContainer.innerHTML = "";
-        var index = 0;
-        function generateTemplate() {
-            if (index >= count) return;
-            var loadingMessage = document.createElement('p');
-            loadingMessage.textContent = "Génération du template " + (index + 1) + " en cours...";
-            generatedTemplatesContainer.appendChild(loadingMessage);
-            jQuery.ajax({
-                url: '<?php echo admin_url('admin-ajax.php'); ?>',
-                type: 'POST',
-                data: {
-                    action: 'acg_generate_comment_templates',
-                    count: 1,
-                    nonce: '<?php echo wp_create_nonce('generate_templates_nonce'); ?>'
-                },
-                success: function(response) {
-                    loadingMessage.remove();
-                    if (response.success) {
-                        var template = response.data.templates[0];
-                        var writingStylesContainer = document.getElementById('writing-styles-container');
-                        var nextIndex = writingStylesContainer.querySelectorAll('.writing-style').length;
-                        var div = document.createElement('div');
-                        div.className = 'writing-style';
-                        div.innerHTML = `
-                          <div style="display: flex; flex-direction: column; gap: 8px;">
-                            <span>Description des auteurs des commentaires (identité, style d'écriture..)</span>
-                            <textarea name="acg_writing_styles[`+nextIndex+`]" rows="4" cols="50"></textarea>
-                          </div>
-                          <label>
-                            <input type="checkbox" name="acg_include_author_names[`+nextIndex+`]" value="1" />
-                            S'adresse directement à l'auteur de l'article
-                          </label>
-                          <button type="button" class="button action remove-style-button">Supprimer</button>
-                        `;
-                        writingStylesContainer.appendChild(div);
-                        bindRemoveButtons();
-                        div.querySelector('textarea').value = template;
-                        index++;
-                        generateTemplate();
-                    } else {
-                        alert("Erreur lors de la génération des templates: " + response.data.message);
-                    }
-                },
-                error: function() {
-                    loadingMessage.remove();
-                    alert("Une erreur s'est produite lors de la communication avec le serveur.");
+        var count = parseInt(document.getElementById('template_count').value) || 1;
+        var button = this;
+        var originalText = button.textContent;
+        
+        button.disabled = true;
+        button.textContent = 'Génération en cours...';
+        
+        jQuery.ajax({
+            url: '<?php echo admin_url('admin-ajax.php'); ?>',
+            type: 'POST',
+            data: {
+                action: 'acg_generate_comment_templates',
+                count: count,
+                nonce: '<?php echo wp_create_nonce('generate_templates_nonce'); ?>'
+            },
+            success: function(response) {
+                if (response.success && response.data.templates) {
+                    var container = document.getElementById('writing-styles-container');
+                    response.data.templates.forEach(function(template) {
+                        var index = container.children.length;
+                        var newStyleDiv = document.createElement('div');
+                        newStyleDiv.className = 'writing-style';
+                        newStyleDiv.innerHTML = '<div style="display: flex; flex-direction: column; gap: 8px;"><span>Description des auteurs des commentaires (identité, style d\'écriture..)</span><textarea name="acg_writing_styles[' + index + ']" rows="4" cols="50">' + template + '</textarea></div><label><input type="checkbox" name="acg_include_author_names[' + index + ']" value="1" />S\'adresse directement à l\'auteur de l\'article</label><button type="button" class="button action remove-style-button">Supprimer</button>';
+                        container.appendChild(newStyleDiv);
+                    });
+                    bindRemoveButtons();
+                    document.getElementById('generated_templates').innerHTML = '<p style="color: green;">' + response.data.templates.length + ' template(s) généré(s) avec succès !</p>';
+                } else {
+                    document.getElementById('generated_templates').innerHTML = '<p style="color: red;">Erreur: ' + (response.data.message || 'Impossible de générer les templates') + '</p>';
                 }
-            });
-        }
-        generateTemplate();
+            },
+            error: function() {
+                document.getElementById('generated_templates').innerHTML = '<p style="color: red;">Erreur de communication avec le serveur.</p>';
+            },
+            complete: function() {
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        });
     });
 })();
-    
-    
-    
-        function updateDefaultModeVisibility() {
-        var defaultChecked = document.getElementById('acg_auto_comment_default').checked;
-        document.getElementById('auto-comment-default-mode-container').style.display = defaultChecked ? '' : 'none';
-        var mode = document.getElementById('acg_auto_comment_default_mode').value;
-        document.getElementById('auto_comment_default_frequency_container').style.display = (mode === 'frequency') ? '' : 'none';
-    }
-    document.getElementById('acg_auto_comment_default_mode').addEventListener('change', updateDefaultModeVisibility);
-    document.getElementById('acg_auto_comment_default').addEventListener('change', updateDefaultModeVisibility);
-    document.addEventListener('DOMContentLoaded', updateDefaultModeVisibility);
-    
-    
 </script>
 
 <script>
@@ -605,60 +540,6 @@ function acg_options_page() {
             }
         });
     });
-    
-    // Gestion du bouton de test de la nouvelle détection
-    document.getElementById('test-new-detection').addEventListener('click', function() {
-        var button = this;
-        var statusSpan = document.getElementById('refresh-niche-status');
-        var testResults = document.getElementById('test-results');
-        
-        // Désactiver le bouton et afficher le statut
-        button.disabled = true;
-        button.textContent = '🧪 Test en cours...';
-        statusSpan.textContent = 'Test de la détection améliorée...';
-        statusSpan.style.color = '#0073aa';
-        testResults.style.display = 'none';
-        
-        jQuery.ajax({
-            url: '<?php echo admin_url('admin-ajax.php'); ?>',
-            type: 'POST',
-            data: {
-                action: 'acg_test_niche_detection',
-                nonce: '<?php echo wp_create_nonce('test_niche_nonce'); ?>'
-            },
-            success: function(response) {
-                if (response.success) {
-                    // Afficher les résultats du test
-                    document.getElementById('old-detection').textContent = response.data.old_niche.charAt(0).toUpperCase() + response.data.old_niche.slice(1);
-                    document.getElementById('new-detection').textContent = response.data.new_niche.charAt(0).toUpperCase() + response.data.new_niche.slice(1);
-                    
-                    testResults.style.display = 'block';
-                    
-                    if (response.data.old_niche !== response.data.new_niche) {
-                        statusSpan.textContent = '✅ Amélioration détectée ! La nouvelle méthode donne un résultat différent.';
-                        statusSpan.style.color = '#00a32a';
-                        document.getElementById('new-detection').style.color = '#00a32a';
-                        document.getElementById('new-detection').style.fontWeight = 'bold';
-                    } else {
-                        statusSpan.textContent = '👌 Même résultat avec la nouvelle méthode.';
-                        statusSpan.style.color = '#0073aa';
-                    }
-                } else {
-                    statusSpan.textContent = '❌ Erreur test : ' + (response.data.message || 'Impossible de tester');
-                    statusSpan.style.color = '#d63638';
-                }
-            },
-            error: function() {
-                statusSpan.textContent = '❌ Erreur de communication lors du test';
-                statusSpan.style.color = '#d63638';
-            },
-            complete: function() {
-                // Réactiver le bouton
-                button.disabled = false;
-                button.textContent = '🧪 Tester nouvelle détection';
-            }
-        });
-    });
 </script>
 
 <script>
@@ -711,64 +592,6 @@ function acg_options_page() {
                     setTimeout(function() {
                         statusSpan.textContent = '';
                     }, 5000);
-                }
-            });
-        }
-    });
-</script>
-
-<script>
-    // Gestion du bouton de nettoyage des données dépréciées
-    document.getElementById('cleanup-deprecated-data')?.addEventListener('click', function() {
-        var button = this;
-        var statusSpan = document.getElementById('cleanup-status');
-        
-        if (confirm('Êtes-vous sûr de vouloir nettoyer les anciennes données ? Cette action supprimera les limites maximales obsolètes de la base de données.')) {
-            // Désactiver le bouton et afficher le statut
-            button.disabled = true;
-            button.textContent = '🗑️ Nettoyage en cours...';
-            statusSpan.textContent = 'Suppression des anciennes données...';
-            statusSpan.style.color = '#0073aa';
-            
-            jQuery.ajax({
-                url: '<?php echo admin_url('admin-ajax.php'); ?>',
-                type: 'POST',
-                data: {
-                    action: 'acg_cleanup_deprecated_data',
-                    nonce: '<?php echo wp_create_nonce('cleanup_deprecated_nonce'); ?>'
-                },
-                success: function(response) {
-                    if (response.success) {
-                        statusSpan.textContent = '✅ ' + response.data.message;
-                        statusSpan.style.color = '#00a32a';
-                        
-                        // Masquer le bouton car nettoyage terminé
-                        setTimeout(function() {
-                            button.style.display = 'none';
-                            statusSpan.textContent = '✅ Base de données nettoyée !';
-                        }, 3000);
-                    } else {
-                        statusSpan.textContent = '❌ Erreur : ' + (response.data.message || 'Impossible de nettoyer');
-                        statusSpan.style.color = '#d63638';
-                    }
-                },
-                error: function() {
-                    statusSpan.textContent = '❌ Erreur de communication avec le serveur';
-                    statusSpan.style.color = '#d63638';
-                },
-                complete: function() {
-                    // Réactiver le bouton si pas masqué
-                    if (button.style.display !== 'none') {
-                        button.disabled = false;
-                        button.textContent = '🗑️ Nettoyer les anciennes données';
-                    }
-                    
-                    // Effacer le statut après 10 secondes
-                    setTimeout(function() {
-                        if (statusSpan.textContent.includes('❌')) {
-                            statusSpan.textContent = '';
-                        }
-                    }, 10000);
                 }
             });
         }
