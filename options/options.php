@@ -60,11 +60,43 @@ function acg_options_page() {
                 </tr>
 
                 <tr valign="top" id="ip-comment-interval-row" style="<?php echo $comment_publish_mode === 'visits' ? '' : 'display:none;'; ?>">
-                    <th scope="row">Publier X commentaires toutes les X IP</th>
+                    <th scope="row">Configuration du mode par visites</th>
                     <td>
-                        <input type="number" name="acg_comment_per_ip" value="<?php echo esc_attr(get_option('acg_comment_per_ip', 1)); ?>" min="1" placeholder="Nombre de commentaires" />
-                        <input type="number" name="acg_interval_per_ip" value="<?php echo esc_attr(get_option('acg_interval_per_ip', 1)); ?>" min="1" placeholder="Intervalle d'IP" />
-                        <p>Exemple : Publier 5 commentaires toutes les 2 IP.</p>
+                        <div style="margin-bottom: 15px;">
+                            <label><strong>Nombre de commentaires à générer :</strong></label>
+                            <input type="number" name="acg_comment_per_ip" value="<?php echo esc_attr(get_option('acg_comment_per_ip', 1)); ?>" min="1" max="10" style="width: 60px;" />
+                            
+                            <label style="margin-left: 20px;"><strong>Déclenchement toutes les :</strong></label>
+                            <input type="number" name="acg_interval_per_ip" value="<?php echo esc_attr(get_option('acg_interval_per_ip', 1)); ?>" min="1" max="100" style="width: 60px;" />
+                            <span>IP uniques</span>
+                        </div>
+                        
+                        <div style="background: #f0f8ff; padding: 12px; border-radius: 5px; border-left: 4px solid #0073aa; margin: 10px 0;">
+                            <h4 style="margin: 0 0 8px 0;">🎯 Fonctionnement amélioré :</h4>
+                            <p style="margin: 5px 0;">• <strong>Sélection aléatoire</strong> : Les commentaires sont ajoutés à des articles choisis au hasard parmi ceux ayant l'auto-commentaire activé</p>
+                            <p style="margin: 5px 0;">• <strong>Distribution naturelle</strong> : Évite la systématisation en variant les articles concernés</p>
+                            <p style="margin: 5px 0;">• <strong>Exemple</strong> : "2 commentaires / 15 IP" = 2 articles aléatoires recevront chacun 1 commentaire toutes les 15 visites uniques</p>
+                        </div>
+                        
+                        <?php 
+                        $global_ip_count = get_option('acg_global_ip_count', 0);
+                        $last_ip_list = get_option('acg_last_ip_list', []);
+                        $interval_per_ip = get_option('acg_interval_per_ip', 1);
+                        ?>
+                        
+                        <div style="background: #f9f9f9; padding: 12px; border-radius: 5px; margin: 10px 0;">
+                            <h4 style="margin: 0 0 8px 0;">📊 Statut actuel :</h4>
+                            <p style="margin: 5px 0;"><strong>IP uniques collectées :</strong> <span id="current-ip-count"><?php echo $global_ip_count; ?></span> / <?php echo $interval_per_ip; ?></p>
+                            <p style="margin: 5px 0;"><strong>Prochains commentaires dans :</strong> <?php echo max(0, $interval_per_ip - $global_ip_count); ?> IP</p>
+                            <?php if ($global_ip_count > 0): ?>
+                                <p style="margin: 5px 0; font-size: 12px; color: #666;">Dernières IP : <?php echo implode(', ', array_slice($last_ip_list, -3)); ?><?php echo count($last_ip_list) > 3 ? '...' : ''; ?></p>
+                            <?php endif; ?>
+                            
+                            <button type="button" id="reset-ip-counter" class="button action" style="margin-top: 8px;">
+                                🔄 Réinitialiser le compteur IP
+                            </button>
+                            <span id="reset-ip-status" style="margin-left: 10px; font-style: italic;"></span>
+                        </div>
                     </td>
                 </tr>
 
@@ -481,6 +513,62 @@ function acg_options_page() {
                 }, 5000);
             }
         });
+    });
+</script>
+
+<script>
+    // Gestion du bouton de réinitialisation du compteur IP
+    document.getElementById('reset-ip-counter')?.addEventListener('click', function() {
+        var button = this;
+        var statusSpan = document.getElementById('reset-ip-status');
+        
+        if (confirm('Êtes-vous sûr de vouloir réinitialiser le compteur d\'IP ? Les commentaires seront déclenchés dès la prochaine visite.')) {
+            // Désactiver le bouton et afficher le statut
+            button.disabled = true;
+            button.textContent = '🔄 Réinitialisation...';
+            statusSpan.textContent = 'Réinitialisation en cours...';
+            statusSpan.style.color = '#0073aa';
+            
+            jQuery.ajax({
+                url: '<?php echo admin_url('admin-ajax.php'); ?>',
+                type: 'POST',
+                data: {
+                    action: 'acg_reset_ip_counter',
+                    nonce: '<?php echo wp_create_nonce('reset_ip_counter_nonce'); ?>'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Mettre à jour l'affichage
+                        document.getElementById('current-ip-count').textContent = '0';
+                        
+                        statusSpan.textContent = '✅ Compteur réinitialisé avec succès !';
+                        statusSpan.style.color = '#00a32a';
+                        
+                        // Actualiser la page après 2 secondes pour voir la mise à jour complète
+                        setTimeout(function() {
+                            location.reload();
+                        }, 2000);
+                    } else {
+                        statusSpan.textContent = '❌ Erreur : ' + (response.data.message || 'Impossible de réinitialiser');
+                        statusSpan.style.color = '#d63638';
+                    }
+                },
+                error: function() {
+                    statusSpan.textContent = '❌ Erreur de communication avec le serveur';
+                    statusSpan.style.color = '#d63638';
+                },
+                complete: function() {
+                    // Réactiver le bouton
+                    button.disabled = false;
+                    button.textContent = '🔄 Réinitialiser le compteur IP';
+                    
+                    // Effacer le statut après 5 secondes
+                    setTimeout(function() {
+                        statusSpan.textContent = '';
+                    }, 5000);
+                }
+            });
+        }
     });
 </script>
 

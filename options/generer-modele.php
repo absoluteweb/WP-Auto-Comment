@@ -219,6 +219,22 @@ function acg_refresh_niche_detection() {
 }
 add_action('wp_ajax_acg_refresh_niche_detection', 'acg_refresh_niche_detection');
 
+// AJAX pour réinitialiser le compteur IP
+function acg_reset_ip_counter() {
+    check_ajax_referer('reset_ip_counter_nonce', 'nonce');
+    
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'Permissions insuffisantes']);
+    }
+    
+    // Réinitialiser les compteurs IP
+    update_option('acg_global_ip_count', 0);
+    update_option('acg_last_ip_list', []);
+    
+    wp_send_json_success(['message' => 'Compteur IP réinitialisé avec succès']);
+}
+add_action('wp_ajax_acg_reset_ip_counter', 'acg_reset_ip_counter');
+
 // Détecter le secteur/niche du site (fonction maintenue pour compatibilité)
 function acg_detect_site_niche($context) {
     return acg_detect_site_niche_with_ai($context);

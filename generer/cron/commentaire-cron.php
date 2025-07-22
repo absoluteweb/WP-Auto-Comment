@@ -48,18 +48,90 @@ function acg_cron_generate_comments() {
         return; 
     }
 
-    $comments_per_ip = get_option('acg_comment_per_ip', 1);
-    $interval_per_ip = get_option('acg_interval_per_ip', 1);
-    $user_ip = $_SERVER['REMOTE_ADDR'];
+    if (empty($api_key)) {
+        error_log('Clé API OpenAI non configurée.');
+        return;
+    }
 
+    // === MODE VISITES ===
+    if ($comment_publish_mode === 'visits') {
+        $comments_per_trigger = get_option('acg_comment_per_ip', 1);
+        $interval_per_ip = get_option('acg_interval_per_ip', 1);
+        $user_ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        
+        // Compteur global d'IP uniques
+        $global_ip_count = get_option('acg_global_ip_count', 0);
+        $last_ip_list = get_option('acg_last_ip_list', []);
+        
+        // Vérifier si cette IP est nouvelle
+        if (!in_array($user_ip, $last_ip_list)) {
+            $last_ip_list[] = $user_ip;
+            $global_ip_count++;
+            
+            // Garder seulement les X dernières IP pour éviter une liste trop longue
+            if (count($last_ip_list) > ($interval_per_ip * 2)) {
+                $last_ip_list = array_slice($last_ip_list, -$interval_per_ip);
+            }
+            
+            update_option('acg_global_ip_count', $global_ip_count);
+            update_option('acg_last_ip_list', $last_ip_list);
+        }
+        
+        // Vérifier si on doit publier des commentaires
+        if ($global_ip_count >= $interval_per_ip) {
+            // Filtrer les articles éligibles pour les commentaires automatiques
+            $eligible_posts = [];
+            foreach ($posts as $post) {
+                $auto_comment_enabled = get_post_meta($post->ID, '_acg_auto_comment_enabled', true);
+                if ($auto_comment_enabled) {
+                    $eligible_posts[] = $post;
+                }
+            }
+            
+            if (empty($eligible_posts)) {
+                error_log('[WP Auto Comment] Aucun article éligible pour les commentaires automatiques.');
+                return;
+            }
+            
+            // Sélectionner aléatoirement X articles parmi les éligibles
+            $selected_count = min($comments_per_trigger, count($eligible_posts));
+            $selected_posts = [];
+            
+            if ($selected_count > 0) {
+                // Mélanger les articles et prendre les X premiers
+                shuffle($eligible_posts);
+                $selected_posts = array_slice($eligible_posts, 0, $selected_count);
+                
+                // Créer un commentaire pour chaque article sélectionné
+                foreach ($selected_posts as $post) {
+                    create_comment(
+                        $post->ID, 
+                        $post->post_content, 
+                        $min_words, 
+                        $max_words, 
+                        $gpt_model, 
+                        $writing_styles, 
+                        $include_author_names
+                    );
+                    
+                    error_log('[WP Auto Comment] Commentaire ajouté à l\'article ID ' . $post->ID . ' (mode IP)');
+                }
+                
+                // Réinitialiser le compteur
+                update_option('acg_global_ip_count', 0);
+                update_option('acg_last_ip_list', []);
+                
+                error_log('[WP Auto Comment] ' . count($selected_posts) . ' commentaires générés pour ' . count($eligible_posts) . ' articles éligibles (mode IP)');
+            }
+        }
+        
+        return; // Sortir pour éviter le mode duration
+    }
+
+    // === MODE DURATION (inchangé) ===
     foreach ($posts as $post) {
         $post_id = $post->ID;
         $post_content = $post->post_content;
-
-        if (empty($api_key)) {
-            error_log('Clé API OpenAI non configurée.');
-            continue;
-        }
 
         $auto_comment_enabled = get_post_meta($post_id, '_acg_auto_comment_enabled', true);
         if (!$auto_comment_enabled) {
@@ -69,19 +141,6 @@ function acg_cron_generate_comments() {
         $published_time = strtotime($post->post_date_gmt);
         $current_time = time();
 
-// Mode "visites"
-if ($publish_mode === 'visits') {
-    $ip_count++;
-    if ($ip_count >= $interval_per_ip) {
-        for ($i = 0; $i < $comments_per_ip; $i++) {
-            create_comment($post_id, $post_content, $min_words, $max_words, $gpt_model, $writing_styles, $include_author_names);
-        }
-        $ip_count = 0; 
-    }
-    update_post_meta($post_id, '_acg_ip_count_' . $user_ip, $ip_count);
-    return;
-}
-        // === MODE DURATION ===
         // Appliquer le délai AVANT toute génération !
         if (($current_time - $published_time) < $auto_comment_delay) {
             continue;

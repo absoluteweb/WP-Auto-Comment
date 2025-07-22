@@ -2,7 +2,56 @@
 
 Extension WordPress qui automatise la génération de commentaires sur les articles de blog en utilisant l'intelligence artificielle OpenAI.
 
-## 🆕 Nouveautés - Détection OpenAI améliorée
+## 🆕 Nouveautés - Mode IP avec sélection aléatoire
+
+**Version 2.4** : Distribution naturelle des commentaires avec sélection aléatoire !
+
+### 🎯 Problème résolu :
+- **Avant** : Commentaires ajoutés systématiquement à tous les articles (peu naturel)
+- **Maintenant** : Sélection aléatoire d'articles pour un rendu plus naturel
+
+### 🎲 Nouvelle logique "mode par visites" :
+
+#### **Sélection aléatoire intelligente :**
+- **Articles choisis au hasard** : Parmi tous ceux ayant l'auto-comment activé
+- **Distribution naturelle** : Évite la systématisation visible
+- **Contrôle précis** : X commentaires sur X articles aléatoires toutes les Y visites
+
+#### **Exemple concret :**
+```
+Configuration : "2 commentaires / 15 IP"
+• 100 articles ont l'auto-comment activé
+• Toutes les 15 visites uniques → sélection de 2 articles au hasard
+• Chaque article sélectionné reçoit 1 commentaire
+• Les 98 autres articles restent intacts (cette fois)
+```
+
+#### **Interface de contrôle :**
+```
+📊 Statut actuel :
+IP uniques collectées : 12 / 15
+Prochains commentaires dans : 3 IP
+Dernières IP : 192.168.1.5, 10.0.0.1, 172.16.0.3...
+
+[🔄 Réinitialiser le compteur IP] ✅ Compteur réinitialisé !
+```
+
+#### **Indicateurs visuels :**
+- **🎲 Sélection aléatoire** : Affiché sur les articles en mode IP
+- **Compteur en temps réel** : Suivi des IP collectées
+- **Bouton de reset** : Réinitialisation manuelle si besoin
+
+### 💡 Comparaison avant/après :
+
+**Ancien système :**
+- 15 IP → Commentaires sur TOUS les articles éligibles
+- Résultat : 50 commentaires simultanés (suspect)
+
+**Nouveau système :**
+- 15 IP → 2 articles aléatoires sélectionnés
+- Résultat : 2 commentaires répartis naturellement
+
+## 🆕 Détection OpenAI améliorée
 
 **Version 2.3** : Détection de thématique ultra-précise avec OpenAI !
 
@@ -53,6 +102,7 @@ Tags populaires : santé, sport, alimentation, médecine
 - 🤖 **Génération automatique** de commentaires via OpenAI GPT
 - 👥 **Système de personas** varié et contextuel  
 - 🎯 **Détection OpenAI précise** de la thématique du site
+- 🎲 **Sélection aléatoire** pour commentaires naturels (mode IP)
 - ⚡ **Cache intelligent** pour optimiser les coûts API
 - ⏰ **Planification flexible** : par durée ou par visites
 - 📊 **Interface complète** : gestion depuis l'admin WordPress
@@ -80,8 +130,8 @@ Tags populaires : santé, sport, alimentation, médecine
 - **Fallback local** : Méthode gratuite par mots-clés si besoin
 
 ### Modes de publication
-- **Par durée** : X commentaires toutes les Y minutes
-- **Par visites** : X commentaires toutes les Y adresses IP uniques
+- **Par durée** : X commentaires toutes les Y minutes (distribution séquentielle)
+- **Par visites** : X commentaires aléatoires toutes les Y adresses IP uniques
 
 ## Utilisation
 
@@ -89,6 +139,7 @@ Tags populaires : santé, sport, alimentation, médecine
 2. **Génération automatique** : Cochez "Commentaire automatique" sur vos articles
 3. **Personas contextuels** : Générés automatiquement selon votre thématique détectée par OpenAI
 4. **Re-détection** : Utilisez le bouton "🔄 Relancer la détection" si votre site change de thématique
+5. **Mode IP naturel** : Les articles sont sélectionnés aléatoirement pour plus de naturel
 
 ## Sécurité
 
@@ -103,4 +154,4 @@ Pour toute question ou suggestion d'amélioration, contactez l'équipe de dével
 
 ---
 
-*Plugin développé par Kevin BENABDELHAK - Version 2.3+*
+*Plugin développé par Kevin BENABDELHAK - Version 2.4+*
