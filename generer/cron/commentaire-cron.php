@@ -205,8 +205,18 @@ function acg_cron_generate_comments() {
 add_action('acg_cron_hook', 'acg_cron_generate_comments');
 
 function create_comment($post_id, $post_content, $min_words, $max_words, $gpt_model, $writing_styles, $include_author_names) {
-    $current_index = array_rand($writing_styles);
+    // ✅ CORRECTION : Utiliser la même logique séquentielle que la génération manuelle
+    // pour garantir une rotation équitable des personas
+    $current_index = get_post_meta($post_id, '_acg_current_style_index', true); 
+    if ($current_index === '' || !isset($writing_styles[$current_index])) {
+        $current_index = 0; // Commencer par le premier persona si pas encore défini
+    }
+    
     $style = $writing_styles[$current_index];
+
+    // Mise à jour pour le prochain commentaire (rotation cyclique)
+    $next_index = ($current_index + 1) % count($writing_styles);
+    update_post_meta($post_id, '_acg_current_style_index', $next_index);
 
     $include_author_name = is_array($include_author_names) && in_array($current_index, $include_author_names);
     if ($include_author_name) {
