@@ -6,8 +6,8 @@ if (!defined('ABSPATH')) {
 
 function acg_add_auto_comment_column($columns) {
     $columns['auto_comment'] = 'Commentaire automatique';
-    $columns['comment_count'] = 'Nombre de commentaires';
-    // Suppression de la colonne 'max_comments' devenue inutile
+    $columns['comment_count'] = 'Commentaires';
+    $columns['plugin_comments'] = 'Générés (Plugin)';
     return $columns;
 }
 
@@ -48,11 +48,51 @@ function acg_auto_comment_column_content($column_name, $post_id) {
                 }
             }
         }
+        
+        // Afficher les garde-fous en mode durée
+        if ($is_enabled && $comment_publish_mode === 'duration') {
+            $plugin_comments = get_post_meta($post_id, '_acg_generated_comments_count', true) ?: 0;
+            $max_plugin_comments = get_option('acg_max_plugin_comments_per_post', 25);
+            $total_comments = wp_count_comments($post_id)->total_comments;
+            $max_total_comments = get_option('acg_max_total_comments_per_post', 50);
+            $published_time = strtotime(get_post_field('post_date_gmt', $post_id));
+            $article_age_days = (time() - $published_time) / (24 * 3600);
+            $max_age_days = get_option('acg_max_article_age_days', 30);
+            
+            $warnings = [];
+            if ($plugin_comments >= $max_plugin_comments * 0.8) {
+                $warnings[] = "⚠️ Limite plugin proche";
+            }
+            if ($total_comments >= $max_total_comments * 0.8) {
+                $warnings[] = "⚠️ Limite totale proche";
+            }
+            if ($article_age_days >= $max_age_days * 0.8) {
+                $warnings[] = "⚠️ Article ancien";
+            }
+            
+            if (!empty($warnings)) {
+                echo '<div style="margin-top: 3px; font-size: 10px; color: #d63638;">' . implode('<br>', $warnings) . '</div>';
+            }
+        }
     } elseif ($column_name === 'comment_count') {
         $comments_count = wp_count_comments($post_id)->total_comments;
         echo esc_html($comments_count);
+    } elseif ($column_name === 'plugin_comments') {
+        $plugin_comments = get_post_meta($post_id, '_acg_generated_comments_count', true) ?: 0;
+        $max_plugin_comments = get_option('acg_max_plugin_comments_per_post', 25);
+        
+        $percentage = $max_plugin_comments > 0 ? ($plugin_comments / $max_plugin_comments) * 100 : 0;
+        $color = '#000';
+        
+        if ($percentage >= 80) {
+            $color = '#d63638'; // Rouge si proche limite
+        } elseif ($percentage >= 60) {
+            $color = '#dba617'; // Jaune si en approche
+        }
+        
+        echo '<span style="color: ' . $color . ';">' . esc_html($plugin_comments) . '</span>';
+        echo '<span style="color: #666; font-size: 11px;"> / ' . $max_plugin_comments . '</span>';
     }
-    // Suppression du case 'max_comments' devenu inutile
 }
 
 // Ajoute les colonnes à TOUS les post types publics (post, page, CPTs)

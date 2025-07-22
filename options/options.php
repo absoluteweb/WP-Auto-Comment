@@ -317,7 +317,41 @@ function acg_options_page() {
                         Publier entre <input style="width:50px;" type="number" name="acg_comment_min_per_post" value="<?php echo esc_attr(get_option('acg_comment_min_per_post', 1)); ?>" min="1" /> et <input style="width:50px;" type="number" name="acg_comment_max_per_post" value="<?php echo esc_attr(get_option('acg_comment_max_per_post', 5)); ?>" min="1" /> commentaires toutes les <input style="width:50px;" type="number" name="acg_cron_interval" value="<?php echo esc_attr($cron_interval); ?>" min="1" /> minutes par publication.
                         <p>Ces commentaires sont générés tant que l'option "Commentaire automatique" est activée sur l'article. Vous pouvez la désactiver à tout moment pour arrêter la génération.</p>
                     </td>
-                </tr>               
+                </tr>
+                
+                <tr valign="top" id="duration-limits-row" style="<?php echo $comment_publish_mode === 'visits' ? 'display: none;' : ''; ?>">
+                    <th scope="row">Garde-fous intelligents</th>
+                    <td>
+                        <div style="background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #ffc107; margin-bottom: 15px;">
+                            <h4 style="margin: 0 0 8px 0;">🛡️ Protection contre la génération illimitée</h4>
+                            <p style="margin: 5px 0;">Pour éviter les coûts API excessifs et maintenir la crédibilité, des limites automatiques sont appliquées :</p>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div>
+                                <label><strong>Limite par âge d'article :</strong></label><br>
+                                <input type="number" name="acg_max_article_age_days" value="<?php echo esc_attr(get_option('acg_max_article_age_days', 30)); ?>" min="1" max="365" style="width: 60px;" /> jours
+                                <p style="font-size: 12px; color: #666; margin: 5px 0;">Auto-désactivation après X jours</p>
+                            </div>
+                            
+                            <div>
+                                <label><strong>Limite de commentaires générés :</strong></label><br>
+                                <input type="number" name="acg_max_plugin_comments_per_post" value="<?php echo esc_attr(get_option('acg_max_plugin_comments_per_post', 25)); ?>" min="1" max="100" style="width: 60px;" /> commentaires
+                                <p style="font-size: 12px; color: #666; margin: 5px 0;">Maximum créés par le plugin</p>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label><strong>Seuil de sécurité global :</strong></label>
+                            <input type="number" name="acg_max_total_comments_per_post" value="<?php echo esc_attr(get_option('acg_max_total_comments_per_post', 50)); ?>" min="1" max="200" style="width: 60px;" /> commentaires total
+                            <p style="font-size: 12px; color: #666; margin: 5px 0;">Auto-désactivation si trop de commentaires (tous confondus)</p>
+                        </div>
+                        
+                        <div style="background: #d1ecf1; padding: 10px; border-radius: 5px; margin-top: 15px;">
+                            <p style="margin: 0; font-size: 12px;"><strong>💡 Comment ça marche :</strong> L'auto-comment se désactive automatiquement sur un article quand une limite est atteinte. Vous pouvez le réactiver manuellement si besoin.</p>
+                        </div>
+                    </td>
+                </tr>
             </table>
             <?php submit_button(); ?>
         </form>
@@ -347,7 +381,7 @@ function acg_options_page() {
         var autoCommentDefault = document.getElementById('acg_auto_comment_default').checked;
         document.getElementById('ip-comment-interval-row').style.display    = (mode === 'visits')   ? '' : 'none';
         document.getElementById('cron-settings-row').style.display  = (mode === 'visits')   ? 'none' : '';
-        document.getElementById('max-comments-row').style.display   = (mode === 'visits')   ? 'none' : '';
+        document.getElementById('duration-limits-row').style.display = (mode === 'visits')   ? 'none' : '';
         document.getElementById('auto-comment-delay-container').style.display = (mode === 'duration' && autoCommentDefault) ? '' : 'none';
     }
     document.getElementById('comment_publish_mode').addEventListener('change', updateOptionsVisibility);
@@ -708,5 +742,9 @@ function acg_register_settings() {
     register_setting('acg_options_group', 'acg_auto_comment_default_frequency');
     register_setting('acg_options_group', 'acg_use_site_context');
     register_setting('acg_options_group', 'acg_use_ai_niche_detection');
+    // Nouvelles options garde-fous
+    register_setting('acg_options_group', 'acg_max_article_age_days');
+    register_setting('acg_options_group', 'acg_max_plugin_comments_per_post');
+    register_setting('acg_options_group', 'acg_max_total_comments_per_post');
 }
 add_action('admin_init', 'acg_register_settings');

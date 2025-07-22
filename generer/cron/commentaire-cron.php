@@ -128,7 +128,7 @@ function acg_cron_generate_comments() {
         return; // Sortir pour éviter le mode duration
     }
 
-    // === MODE DURATION (inchangé) ===
+    // === MODE DURATION avec garde-fous intelligents ===
     foreach ($posts as $post) {
         $post_id = $post->ID;
         $post_content = $post->post_content;
@@ -146,13 +146,68 @@ function acg_cron_generate_comments() {
             continue;
         }
 
-        // Générer entre X et Y commentaires par cycle
+        // === GARDE-FOUS INTELLIGENTS ===
+        
+        // 1. Limitation par âge d'article (évite les vieux articles submergés)
+        $max_article_age_days = get_option('acg_max_article_age_days', 30); // 30 jours par défaut
+        $article_age_days = ($current_time - $published_time) / (24 * 3600);
+        
+        if ($article_age_days > $max_article_age_days) {
+            // Désactiver automatiquement l'auto-comment sur les vieux articles
+            update_post_meta($post_id, '_acg_auto_comment_enabled', '0');
+            error_log('[WP Auto Comment] Auto-comment désactivé pour article ID ' . $post_id . ' (âge: ' . round($article_age_days) . ' jours)');
+            continue;
+        }
+        
+        // 2. Limitation par nombre de commentaires générés par le plugin
+        $total_comments = wp_count_comments($post_id)->total_comments;
+        $plugin_comments = get_post_meta($post_id, '_acg_generated_comments_count', true) ?: 0;
+        $max_plugin_comments = get_option('acg_max_plugin_comments_per_post', 25); // 25 par défaut
+        
+        if ($plugin_comments >= $max_plugin_comments) {
+            // Désactiver automatiquement l'auto-comment si limite atteinte
+            update_post_meta($post_id, '_acg_auto_comment_enabled', '0');
+            error_log('[WP Auto Comment] Auto-comment désactivé pour article ID ' . $post_id . ' (limite: ' . $plugin_comments . ' commentaires générés)');
+            continue;
+        }
+        
+        // 3. Seuil de sécurité global (évite les articles avec trop de commentaires au total)
+        $max_total_comments = get_option('acg_max_total_comments_per_post', 50); // 50 par défaut
+        
+        if ($total_comments >= $max_total_comments) {
+            // Désactiver automatiquement l'auto-comment si trop de commentaires au total
+            update_post_meta($post_id, '_acg_auto_comment_enabled', '0');
+            error_log('[WP Auto Comment] Auto-comment désactivé pour article ID ' . $post_id . ' (total: ' . $total_comments . ' commentaires)');
+            continue;
+        }
+
+        // 4. Générer entre X et Y commentaires par cycle (si tous les garde-fous passent)
         $min_comments = get_option('acg_comment_min_per_post', 1);
         $max_comments = get_option('acg_comment_max_per_post', 5);
         $comment_count = rand($min_comments, $max_comments);
+        
+        // Vérifier qu'on ne dépasse pas les limites avec ce cycle
+        $remaining_plugin_slots = $max_plugin_comments - $plugin_comments;
+        $remaining_total_slots = $max_total_comments - $total_comments;
+        $max_this_cycle = min($comment_count, $remaining_plugin_slots, $remaining_total_slots);
+        
+        if ($max_this_cycle <= 0) {
+            continue; // Aucune place disponible
+        }
 
-        for ($i = 0; $i < $comment_count; $i++) {
-            create_comment($post_id, $post_content, $min_words, $max_words, $gpt_model, $writing_styles, $include_author_names);
+        // Générer les commentaires avec comptage
+        for ($i = 0; $i < $max_this_cycle; $i++) {
+            $success = create_comment($post_id, $post_content, $min_words, $max_words, $gpt_model, $writing_styles, $include_author_names);
+            
+            if ($success) {
+                // Incrémenter le compteur de commentaires générés par le plugin
+                $plugin_comments++;
+                update_post_meta($post_id, '_acg_generated_comments_count', $plugin_comments);
+            }
+        }
+        
+        if ($max_this_cycle > 0) {
+            error_log('[WP Auto Comment] ' . $max_this_cycle . ' commentaires générés pour article ID ' . $post_id . ' (total plugin: ' . $plugin_comments . ')');
         }
     }
 }
@@ -205,7 +260,7 @@ function create_comment($post_id, $post_content, $min_words, $max_words, $gpt_mo
 
     if (is_wp_error($response)) {
         error_log('Erreur API: ' . $response->get_error_message());
-        return;
+        return false;
     }
 
     $body = wp_remote_retrieve_body($response);
@@ -223,13 +278,27 @@ function create_comment($post_id, $post_content, $min_words, $max_words, $gpt_mo
                 'comment_content' => $comment_content,
                 'comment_author' => $comment_author,
                 'comment_approved' => 1,
+                // Marquer le commentaire comme généré par le plugin
+                'comment_meta' => array(
+                    '_acg_generated' => '1',
+                    '_acg_generated_time' => current_time('timestamp')
+                )
             );
 
-            wp_insert_comment($comment_data);
+            $comment_id = wp_insert_comment($comment_data);
+            
+            if ($comment_id) {
+                // Ajouter les meta données séparément pour plus de sécurité
+                add_comment_meta($comment_id, '_acg_generated', '1');
+                add_comment_meta($comment_id, '_acg_generated_time', current_time('timestamp'));
+                return true;
+            }
         } else {
             error_log('La réponse JSON n\'est pas au format attendu pour l\'article ID ' . $post_id);
         }
     } else {
         error_log('Aucune réponse valide reçue de l\'API pour l\'article ID ' . $post_id);
     }
+    
+    return false;
 }
