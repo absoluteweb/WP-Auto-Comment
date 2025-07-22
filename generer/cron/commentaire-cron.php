@@ -146,27 +146,10 @@ function acg_cron_generate_comments() {
             continue;
         }
 
-        // Limite de commentaires maximum
-        $min_limit = (int) get_option('acg_comment_max_per_post_value_min', 1);
-        $max_limit = (int) get_option('acg_comment_max_per_post_value_max', 5);
-
-        $current_comments = wp_count_comments($post_id)->total_comments;
-        $current_max_comments = get_post_meta($post_id, '_acg_max_comments', true);
-
-        if (!$current_max_comments) {
-            $current_max_comments = rand($min_limit, $max_limit);
-            update_post_meta($post_id, '_acg_max_comments', $current_max_comments);
-        }
-
-        if ($current_comments >= $current_max_comments) {
-            continue; 
-        }
-
+        // Générer entre X et Y commentaires par cycle
         $min_comments = get_option('acg_comment_min_per_post', 1);
         $max_comments = get_option('acg_comment_max_per_post', 5);
-
-        $available_space = $current_max_comments - $current_comments;
-        $comment_count = min(rand($min_comments, $max_comments), $available_space);
+        $comment_count = rand($min_comments, $max_comments);
 
         for ($i = 0; $i < $comment_count; $i++) {
             create_comment($post_id, $post_content, $min_words, $max_words, $gpt_model, $writing_styles, $include_author_names);

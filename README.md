@@ -2,7 +2,68 @@
 
 Extension WordPress qui automatise la génération de commentaires sur les articles de blog en utilisant l'intelligence artificielle OpenAI.
 
-## 🆕 Nouveautés - Mode IP avec sélection aléatoire
+## 🆕 Nouveautés - Simplification de la gestion v2.5
+
+**Version 2.5** : Suppression de la logique confuse de limite maximale par article !
+
+### 🎯 Problème résolu :
+- **Avant** : Limite aléatoire et arbitraire par article (1-5 commentaires max/article)
+- **Maintenant** : Contrôle simple et clair via bouton on/off par article
+
+### ✂️ Suppression de la complexité inutile :
+
+#### **Ce qui a été supprimé :**
+- **❌ `_acg_max_comments`** : Postmeta arbitraire par article
+- **❌ Options min/max** : Réglages déroutants dans l'admin  
+- **❌ Colonne "Max commentaires"** : Information confuse
+- **❌ Logique aléatoire** : Pourquoi tel article 1 max et tel autre 5 max ?
+
+#### **Ce qui reste (simplifié) :**
+- **✅ Bouton on/off** : "Commentaire automatique" par article (clair !)
+- **✅ Mode IP** : Sélection aléatoire d'articles (naturel)
+- **✅ Mode durée** : X commentaires toutes les Y minutes (contrôlable)
+
+### 🧹 **Nettoyage automatique :**
+```
+🧹 Maintenance
+Cette version a supprimé la fonctionnalité de limite maximale de commentaires 
+par article (qui était arbitraire et déroutante).
+
+[🗑️ Nettoyer les anciennes données] ✅ Base de données nettoyée !
+
+Contrôle des commentaires : Utilisez maintenant le bouton on/off 
+"Commentaire automatique" sur chaque article pour contrôler la génération. 
+Plus simple et plus clair !
+```
+
+### 💡 **Pourquoi cette simplification ?**
+
+**Ancien système complexe :**
+```php
+// ❌ Logique confuse
+$max_comments = rand(1, 5); // Pourquoi aléatoire ???
+if ($current_comments >= $max_comments) {
+    stop(); // L'utilisateur ne comprend pas pourquoi ça s'arrête
+}
+```
+
+**Nouveau système simple :**
+```php
+// ✅ Logique claire
+if (!$auto_comment_enabled) {
+    continue; // L'utilisateur contrôle directement
+}
+```
+
+### 🎯 **Contrôle plus intuitif :**
+
+| Avant | Maintenant |
+|-------|-------------|
+| Article A : 1 commentaire max (??) | Article A : ON/OFF |
+| Article B : 5 commentaires max (??) | Article B : ON/OFF |
+| Utilisateur confus | Utilisateur en contrôle |
+
+## 🆕 Mode IP avec sélection aléatoire
 
 **Version 2.4** : Distribution naturelle des commentaires avec sélection aléatoire !
 
@@ -103,6 +164,7 @@ Tags populaires : santé, sport, alimentation, médecine
 - 👥 **Système de personas** varié et contextuel  
 - 🎯 **Détection OpenAI précise** de la thématique du site
 - 🎲 **Sélection aléatoire** pour commentaires naturels (mode IP)
+- ✂️ **Gestion simplifiée** : Contrôle clair par article (on/off)
 - ⚡ **Cache intelligent** pour optimiser les coûts API
 - ⏰ **Planification flexible** : par durée ou par visites
 - 📊 **Interface complète** : gestion depuis l'admin WordPress
@@ -130,7 +192,7 @@ Tags populaires : santé, sport, alimentation, médecine
 - **Fallback local** : Méthode gratuite par mots-clés si besoin
 
 ### Modes de publication
-- **Par durée** : X commentaires toutes les Y minutes (distribution séquentielle)
+- **Par durée** : X commentaires toutes les Y minutes (contrôle par bouton on/off)
 - **Par visites** : X commentaires aléatoires toutes les Y adresses IP uniques
 
 ## Utilisation
@@ -140,13 +202,14 @@ Tags populaires : santé, sport, alimentation, médecine
 3. **Personas contextuels** : Générés automatiquement selon votre thématique détectée par OpenAI
 4. **Re-détection** : Utilisez le bouton "🔄 Relancer la détection" si votre site change de thématique
 5. **Mode IP naturel** : Les articles sont sélectionnés aléatoirement pour plus de naturel
+6. **Contrôle simple** : Bouton on/off par article pour arrêter/relancer la génération
 
 ## Sécurité
 
 - Vérification des nonces AJAX
 - Validation des données d'entrée  
 - Contrôle d'accès administrateur
-- Limitation du nombre de commentaires
+- Nettoyage automatique des anciennes données
 
 ## Support
 
@@ -154,4 +217,4 @@ Pour toute question ou suggestion d'amélioration, contactez l'équipe de dével
 
 ---
 
-*Plugin développé par Kevin BENABDELHAK - Version 2.4+*
+*Plugin développé par Kevin BENABDELHAK - Version 2.5+*

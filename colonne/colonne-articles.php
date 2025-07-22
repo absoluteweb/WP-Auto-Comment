@@ -7,7 +7,7 @@ if (!defined('ABSPATH')) {
 function acg_add_auto_comment_column($columns) {
     $columns['auto_comment'] = 'Commentaire automatique';
     $columns['comment_count'] = 'Nombre de commentaires';
-    $columns['max_comments'] = 'Max commentaires';
+    // Suppression de la colonne 'max_comments' devenue inutile
     return $columns;
 }
 
@@ -51,10 +51,8 @@ function acg_auto_comment_column_content($column_name, $post_id) {
     } elseif ($column_name === 'comment_count') {
         $comments_count = wp_count_comments($post_id)->total_comments;
         echo esc_html($comments_count);
-    } elseif ($column_name === 'max_comments') {
-        $max_comments = get_post_meta($post_id, '_acg_max_comments', true);
-        echo esc_html($max_comments ? $max_comments : '0');
     }
+    // Suppression du case 'max_comments' devenu inutile
 }
 
 // Ajoute les colonnes à TOUS les post types publics (post, page, CPTs)

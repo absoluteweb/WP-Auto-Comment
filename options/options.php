@@ -315,18 +315,28 @@ function acg_options_page() {
                     <th scope="row">Planifier les commentaires</th>
                     <td>
                         Publier entre <input style="width:50px;" type="number" name="acg_comment_min_per_post" value="<?php echo esc_attr(get_option('acg_comment_min_per_post', 1)); ?>" min="1" /> et <input style="width:50px;" type="number" name="acg_comment_max_per_post" value="<?php echo esc_attr(get_option('acg_comment_max_per_post', 5)); ?>" min="1" /> commentaires toutes les <input style="width:50px;" type="number" name="acg_cron_interval" value="<?php echo esc_attr($cron_interval); ?>" min="1" /> minutes par publication.
+                        <p>Ces commentaires sont générés tant que l'option "Commentaire automatique" est activée sur l'article. Vous pouvez la désactiver à tout moment pour arrêter la génération.</p>
                     </td>
                 </tr>               
-                <tr valign="top" id="max-comments-row" style="<?php echo $comment_publish_mode === 'visits' ? 'display: none;' : ''; ?>">
-                    <th scope="row">Nombre maximum de commentaires par publication</th>
-                    <td>
-                        Ne jamais dépasser entre <input style="width:50px;" type="number" name="acg_comment_max_per_post_value_min" value="<?php echo esc_attr(get_option('acg_comment_max_per_post_value_min', 1)); ?>" min="1" /> et <input style="width:50px;" type="number" name="acg_comment_max_per_post_value_max" value="<?php echo esc_attr(get_option('acg_comment_max_per_post_value_max', 5)); ?>" min="1" /> commentaires par publication.
-                        <p>Cette option générera un nombre aléatoire dès la première publication de commentaire automatique.</p>
-                    </td>
-                </tr>
             </table>
             <?php submit_button(); ?>
         </form>
+        
+        <!-- Section de maintenance -->
+        <div style="margin-top: 30px; padding: 15px; background: #fff; border: 1px solid #ccd0d4; border-radius: 4px;">
+            <h2>🧹 Maintenance</h2>
+            <p>Cette version a supprimé la fonctionnalité de limite maximale de commentaires par article (qui était arbitraire et déroutante).</p>
+            <p>Vous pouvez nettoyer les anciennes données inutiles de votre base de données :</p>
+            
+            <button type="button" id="cleanup-deprecated-data" class="button action">
+                🗑️ Nettoyer les anciennes données
+            </button>
+            <span id="cleanup-status" style="margin-left: 10px; font-style: italic;"></span>
+            
+            <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                <strong>Contrôle des commentaires :</strong> Utilisez maintenant le bouton on/off "Commentaire automatique" sur chaque article pour contrôler la génération. Plus simple et plus clair !
+            </p>
+        </div>
     </div>
 
 <script>
@@ -572,6 +582,64 @@ function acg_options_page() {
     });
 </script>
 
+<script>
+    // Gestion du bouton de nettoyage des données dépréciées
+    document.getElementById('cleanup-deprecated-data')?.addEventListener('click', function() {
+        var button = this;
+        var statusSpan = document.getElementById('cleanup-status');
+        
+        if (confirm('Êtes-vous sûr de vouloir nettoyer les anciennes données ? Cette action supprimera les limites maximales obsolètes de la base de données.')) {
+            // Désactiver le bouton et afficher le statut
+            button.disabled = true;
+            button.textContent = '🗑️ Nettoyage en cours...';
+            statusSpan.textContent = 'Suppression des anciennes données...';
+            statusSpan.style.color = '#0073aa';
+            
+            jQuery.ajax({
+                url: '<?php echo admin_url('admin-ajax.php'); ?>',
+                type: 'POST',
+                data: {
+                    action: 'acg_cleanup_deprecated_data',
+                    nonce: '<?php echo wp_create_nonce('cleanup_deprecated_nonce'); ?>'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        statusSpan.textContent = '✅ ' + response.data.message;
+                        statusSpan.style.color = '#00a32a';
+                        
+                        // Masquer le bouton car nettoyage terminé
+                        setTimeout(function() {
+                            button.style.display = 'none';
+                            statusSpan.textContent = '✅ Base de données nettoyée !';
+                        }, 3000);
+                    } else {
+                        statusSpan.textContent = '❌ Erreur : ' + (response.data.message || 'Impossible de nettoyer');
+                        statusSpan.style.color = '#d63638';
+                    }
+                },
+                error: function() {
+                    statusSpan.textContent = '❌ Erreur de communication avec le serveur';
+                    statusSpan.style.color = '#d63638';
+                },
+                complete: function() {
+                    // Réactiver le bouton si pas masqué
+                    if (button.style.display !== 'none') {
+                        button.disabled = false;
+                        button.textContent = '🗑️ Nettoyer les anciennes données';
+                    }
+                    
+                    // Effacer le statut après 10 secondes
+                    setTimeout(function() {
+                        if (statusSpan.textContent.includes('❌')) {
+                            statusSpan.textContent = '';
+                        }
+                    }, 10000);
+                }
+            });
+        }
+    });
+</script>
+
 <?php
 }
 
@@ -628,8 +696,6 @@ function acg_register_settings() {
     register_setting('acg_options_group', 'acg_cron_interval'); 
     register_setting('acg_options_group', 'acg_comment_min_per_post'); 
     register_setting('acg_options_group', 'acg_comment_max_per_post'); 
-    register_setting('acg_options_group', 'acg_comment_max_per_post_value_min'); 
-    register_setting('acg_options_group', 'acg_comment_max_per_post_value_max');    
     register_setting('acg_options_group', 'acg_auto_comment_default'); 
     register_setting('acg_options_group', 'acg_comment_publish_mode'); 
     register_setting('acg_options_group', 'acg_comment_per_ip'); 

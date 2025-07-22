@@ -235,6 +235,43 @@ function acg_reset_ip_counter() {
 }
 add_action('wp_ajax_acg_reset_ip_counter', 'acg_reset_ip_counter');
 
+// Fonction de nettoyage des anciennes postmeta inutiles
+function acg_cleanup_deprecated_postmeta() {
+    global $wpdb;
+    
+    // Supprimer toutes les postmeta _acg_max_comments devenues inutiles
+    $deleted = $wpdb->delete(
+        $wpdb->postmeta,
+        array('meta_key' => '_acg_max_comments'),
+        array('%s')
+    );
+    
+    if ($deleted !== false) {
+        error_log('[WP Auto Comment] Nettoyage : ' . $deleted . ' entrées _acg_max_comments supprimées');
+        return $deleted;
+    }
+    
+    return false;
+}
+
+// AJAX pour nettoyer les anciennes données
+function acg_cleanup_deprecated_data() {
+    check_ajax_referer('cleanup_deprecated_nonce', 'nonce');
+    
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'Permissions insuffisantes']);
+    }
+    
+    $deleted = acg_cleanup_deprecated_postmeta();
+    
+    if ($deleted !== false) {
+        wp_send_json_success(['message' => $deleted . ' anciennes données supprimées avec succès']);
+    } else {
+        wp_send_json_error(['message' => 'Erreur lors du nettoyage des données']);
+    }
+}
+add_action('wp_ajax_acg_cleanup_deprecated_data', 'acg_cleanup_deprecated_data');
+
 // Détecter le secteur/niche du site (fonction maintenue pour compatibilité)
 function acg_detect_site_niche($context) {
     return acg_detect_site_niche_with_ai($context);
