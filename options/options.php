@@ -96,9 +96,51 @@ function acg_options_page() {
 
                 <tr valign="top">
                     <td style="padding:0px !important;" colspan="2">
+                        <h2 style="margin:8px 0px !important;">Contextualisation des personas</h2>
+                        <p style="max-width: 640px;">Les personas peuvent être adaptés automatiquement à la thématique de votre site pour générer des commentaires plus pertinents et crédibles.</p>
+                        
+                        <?php 
+                        // Inclure le fichier pour accéder aux fonctions
+                        if (function_exists('acg_analyze_site_context')) {
+                            $site_context = acg_analyze_site_context();
+                        } else {
+                            require_once plugin_dir_path(__FILE__) . 'generer-modele.php';
+                            $site_context = acg_analyze_site_context();
+                        }
+                        ?>
+                        
+                        <div style="background: #f9f9f9; padding: 15px; border-radius: 5px; margin: 10px 0;">
+                            <h4>📊 Analyse de votre site :</h4>
+                            <p><strong>Secteur détecté :</strong> <?php echo ucfirst($site_context['detected_niche']); ?></p>
+                            <?php if (!empty($site_context['main_categories'])): ?>
+                                <p><strong>Principales catégories :</strong> <?php echo implode(', ', array_slice($site_context['main_categories'], 0, 5)); ?></p>
+                            <?php endif; ?>
+                            <?php if (!empty($site_context['popular_tags'])): ?>
+                                <p><strong>Tags populaires :</strong> <?php echo implode(', ', array_slice($site_context['popular_tags'], 0, 8)); ?></p>
+                            <?php endif; ?>
+                        </div>
+                    </td>
+                </tr>
+
+                <tr valign="top">
+                    <th scope="row">Utiliser la contextualisation automatique</th>
+                    <td>
+                        <input type="checkbox" name="acg_use_site_context" value="1" <?php checked(get_option('acg_use_site_context', 1), 1); ?> />
+                        <p>Adapte automatiquement les personas générés à la thématique détectée de votre site. Les personas auront des professions et centres d'intérêt cohérents avec votre contenu.</p>
+                        
+                        <?php if ($site_context['detected_niche'] !== 'général'): ?>
+                            <p style="color: #0073aa;"><strong>✓ Recommandé :</strong> Votre site semble spécialisé en <em><?php echo $site_context['detected_niche']; ?></em>, la contextualisation améliorera la pertinence des commentaires.</p>
+                        <?php else: ?>
+                            <p style="color: #666;"><strong>ℹ️ Info :</strong> Aucune thématique spécifique détectée. Les personas seront générés de manière généraliste.</p>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+
+                <tr valign="top">
+                    <td style="padding:0px !important;" colspan="2">
                         <h2 style="margin:8px 0px !important;">Modèles de commentaires</h2>
                         <p style="max-width: 590px;">Chaque modèle peut comprendre des informations sur l'auteur (nom/prénom) ainsi que des caractéristiques spécifiques qui définissent le ton et le style du commentaire. Grâce à ces modèles, vous pouvez créer des personas en plus d'éviter les redondances de l'IA.</p><br>
-                        <b>Vous pouvez générer ces modèles en masse avec gpt-4o-mini :</b>
+                        <b>Vous pouvez générer ces modèles en masse avec gpt-4o-mini<?php echo ($site_context['detected_niche'] !== 'général') ? ' (adaptés à votre thématique ' . $site_context['detected_niche'] . ')' : ''; ?> :</b>
                         <div style="display: flex;flex-direction: column;align-items: flex-start;margin-bottom: 15px;">  
                             <p>Entrez le nombre de modèles à générer : 
                                 <input type="number" id="template_count" min="1" value="1" style="width: 50px;" />
@@ -410,5 +452,6 @@ function acg_register_settings() {
     register_setting('acg_options_group', 'acg_auto_comment_delay');
     register_setting('acg_options_group', 'acg_auto_comment_default_mode');
     register_setting('acg_options_group', 'acg_auto_comment_default_frequency');
+    register_setting('acg_options_group', 'acg_use_site_context');
 }
 add_action('admin_init', 'acg_register_settings');

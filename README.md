@@ -1,112 +1,74 @@
 # WP Auto Comment
-Contributors: kevinbenabdelhak   
-Tags: commentaires, automatisation, OpenAI, génération, API   
-Requires at least: 5.0   
-Tested up to: 6.6.2   
-Requires PHP: 7.0   
-Stable tag: 2.2               
-License: GPLv2 or later   
-License URI: https://www.gnu.org/licenses/gpl-2.0.html   
 
-Automatisez la génération de commentaires sur vos articles en utilisant l'API OpenAI pour enrichir l'interaction avec vos lecteurs.
+Extension WordPress qui automatise la génération de commentaires sur les articles de blog en utilisant l'intelligence artificielle OpenAI.
 
-## Description
+## 🆕 Nouveautés - Contextualisation des Personas
 
-### WP Auto Comment - Automatisez la génération de commentaires sur vos articles
+**Version améliorée** : Les personas sont maintenant automatiquement adaptés à la thématique de votre site !
 
-WP Auto Comment est un plugin WordPress qui permet de générer automatiquement des commentaires sur vos articles en utilisant l'API OpenAI. Ce plugin enrichit vos publications en fournissant des commentaires pertinents et engageants sans nécessiter d'intervention manuelle.
+### Fonctionnalités de contextualisation :
 
-[![Voir le tutoriel](https://img.youtube.com/vi/Pj8Df5n7HRg/hqdefault.jpg)](https://www.youtube.com/watch?v=Pj8Df5n7HRg)
+- **Analyse automatique** de votre site (catégories, tags, contenu)
+- **Détection de secteur** parmi 8 thématiques : cuisine, technologie, lifestyle, santé, business, éducation, famille, loisirs
+- **Adaptation des personas** : professions et styles d'écriture cohérents avec votre niche
+- **Interface visuelle** : aperçu de l'analyse dans l'admin WordPress
+- **Contrôle total** : activation/désactivation de la contextualisation
 
+### Exemple d'amélioration :
 
-#### Fonctionnalités principales :
+**Avant** : Persona générique → "Jean, 30 ans, comptable"
+**Après** : Site de cuisine → "Marie, 28 ans, chef pâtissière passionnée de nouvelles saveurs"
 
-1. **Génération automatique de commentaires** : Créez des commentaires sur vos articles basés sur le contenu et le style spécifiés.
-2. **Paramètres configurables** : Gérez facilement les paramètres du plugin via l'interface de configuration, y compris la clé API OpenAI et le style d'écriture.
-3. **Contrôle individuel** : Activez ou désactivez la génération de commentaires automatiques pour chaque article directement depuis l'interface WordPress.
-4. **Planification via Cron** : Planifiez la génération de commentaires à des intervalles spécifiques pour un apport constant de contenu.
-5. **Interface utilisateur intuitive** : Configuration simple et interface claire pour une utilisation facile par tous les utilisateurs.
+## Fonctionnalités principales
+
+- 🤖 **Génération automatique** de commentaires via OpenAI GPT
+- 👥 **Système de personas** varié et contextuel  
+- ⏰ **Planification flexible** : par durée ou par visites
+- 🎯 **Ciblage intelligent** : commentaires adaptés au contenu
+- 📊 **Interface complète** : gestion depuis l'admin WordPress
+- 🔄 **Mise à jour automatique** via GitHub
 
 ## Installation
 
-1. **Téléchargez le fichier ZIP du plugin :**
+1. Téléchargez et activez le plugin
+2. Configurez votre clé API OpenAI dans Réglages → WP Auto Comment
+3. Activez la contextualisation automatique (recommandé)
+4. Générez des modèles de personas adaptés à votre thématique
+5. Activez les commentaires automatiques sur vos articles
 
-   Téléchargez le fichier ZIP du plugin depuis cette URL : [Télécharger WP Auto Comment](https://kevin-benabdelhak.fr/plugins/wp-auto-comment/)
+## Configuration
 
-2. **Uploader le fichier ZIP du plugin :**
+### Réglages généraux
+- Clé API OpenAI (obligatoire)
+- Modèle GPT (gpt-4o-mini recommandé)
+- Nombre de mots par commentaire (5-20)
 
-   - Allez dans le panneau d'administration de WordPress et cliquez sur "Extensions" > "Ajouter".
-   - Cliquez sur "Téléverser une extension".
-   - Choisissez le fichier ZIP que vous avez téléchargé et cliquez sur "Installer maintenant".
+### Contextualisation des personas
+- **Analyse automatique** : Le plugin détecte votre secteur d'activité
+- **Adaptation intelligente** : Les personas générés correspondent à votre audience
+- **Contrôle manuel** : Possibilité de désactiver la contextualisation
 
-3. **Activer le plugin :**
+### Modes de publication
+- **Par durée** : X commentaires toutes les Y minutes
+- **Par visites** : X commentaires toutes les Y adresses IP uniques
 
-   Une fois le plugin installé, cliquez sur "Activer".
+## Utilisation
 
-4. **Configurer votre compte OpenAI :**
+1. **Génération manuelle** : Sélectionnez des articles et utilisez l'action en lot
+2. **Génération automatique** : Cochez "Commentaire automatique" sur vos articles
+3. **Personas contextuels** : Générés automatiquement selon votre thématique
 
-   - Allez dans "Réglages" > "WP Auto Comment".
-   - Entrez vos paramètres d'API OpenAI pour activer la génération de commentaires.
+## Sécurité
 
-## MAJ
+- Vérification des nonces AJAX
+- Validation des données d'entrée  
+- Contrôle d'accès administrateur
+- Limitation du nombre de commentaires
 
-### 2.2   
-* Correction d'un bug avec le mode IP (il fallait revenir sur la page d'option et réengistrer les options)
-* Ajout d'une barre de sélection pour activer la case des commentaires automatiques aléatoirement, ou toutes les X publications
+## Support
 
-### 2.1   
-* Ajout d'un délai avant la publication des commentaires auto sur les nouvelles publications (disponible en mode "délai")
-* Affichage du délai restant dans le tableau des publication 
+Pour toute question ou suggestion d'amélioration, contactez l'équipe de développement.
 
-### 2.0   
-* Correction sur les cases à cocher "S'adresser à l'auteur" pour la version Php 7.3
+---
 
-### 1.9 
-* Personnas aléatoires sur les commentaires automatiques
-
-
-### 1.8 
-* Désactiver les commentaires automatiques pendant un certain temps en indiquant une plage horaire (fonctionne avec le mode "délai" et le mode "IP")
-
-### 1.7 
-* Compatibilité des commentaires automatique sur tout les types de contenus personnalisés (et pages)
-
-### 1.6 
-* Ajout d'une option pour générer des commentaires en fonction des visites (par IP)
-* Ajout de gpt-4.1 et gpt-4.1-mini
-
-### 1.5
-* Nombre de commentaires par boucle (en aléatoire)
-* Nombre maximum de commentaires sur les articles (en aléatoire)
-* Activer les coms autos sur les nouvelles publications ( cases à cocher cochées par défaut )
-
-### 1.4
-* Générateur de modèles de commentaire ( génère automatiquement un brief : Nom,prénom,profession,style d'écriture)
-* Possibilité d'indiquer le nombre de modèle à créer
-* Modèle créé avec gpt-4o-mini
-
-### 1.3
-* Patch sur l'enregistrement des cases à cocher dans la page listing des articles
-
-### 1.2
-* Possibilité de créer des templates de commentaire (idéal pour briser les redondances de l'IA)
-
-### 1.1
-*  Ajout d'une case à cocher dans les options pour s'adresser directement à l'auteur (exemple : Bonjour Kevin, merci pour cet article)
-
-### 1.0
-*  Ajoutez des commentaires avec les actions groupées
-*  Sélectionnez le nombre de commentaires par article
-*  Générez avec gpt-4o-mini, gpt-4o ou gpt-3.5-turbo
-*  Personnalisez les commentaires avec un prompt
-*  Automatisez le nom et prenom de l'auteur
-*  Choisissez une tranche pour le nombre de mot (min/max)
-*  Activez la génération automatique
-*  Filtrer les pages concernés dans le tableau des articles
-*  Modifier l'intervalle entre les publications de commentaires
-
-
-
-<a href="https://kevin-benabdelhak.fr/soutenir/">
-  <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExOXY0cmdrdnNjcXlxb3hrcG15YmpzYWRqZ3BpeHNyY3I4YjZ1eXc0dSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/R9mgVlsCuv6XCDK8Lb/giphy.gif" alt="Soutenir Kevin Benabdelhak pour développer des plugins WordPress" style="width:100%;" />
-</a>
+*Plugin développé par Kevin BENABDELHAK - Version 2.2+*
