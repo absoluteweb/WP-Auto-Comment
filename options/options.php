@@ -165,7 +165,17 @@ function acg_options_page() {
                                 <button type="button" id="refresh-niche-detection" class="button action" style="margin-right: 10px;">
                                     🔄 Relancer la détection
                                 </button>
+                                <button type="button" id="test-new-detection" class="button button-secondary" style="margin-right: 10px;">
+                                    🧪 Tester nouvelle détection
+                                </button>
                                 <span id="refresh-niche-status" style="color: #666; font-style: italic;"></span>
+                            </div>
+                            
+                            <div id="test-results" style="display: none; margin-top: 15px; padding: 10px; background: #f0f8ff; border-radius: 5px; border-left: 4px solid #0073aa;">
+                                <h4>🧪 Résultat du test :</h4>
+                                <p><strong>Avant :</strong> <span id="old-detection"></span></p>
+                                <p><strong>Maintenant :</strong> <span id="new-detection"></span></p>
+                                <p style="font-size: 12px; color: #666;">Ce test utilise la liste élargie des secteurs (13 au lieu de 9). Utilisez "Relancer la détection" pour appliquer définitivement le nouveau résultat.</p>
                             </div>
                         </div>
                     </td>
@@ -555,6 +565,60 @@ function acg_options_page() {
                 setTimeout(function() {
                     statusSpan.textContent = '';
                 }, 5000);
+            }
+        });
+    });
+    
+    // Gestion du bouton de test de la nouvelle détection
+    document.getElementById('test-new-detection').addEventListener('click', function() {
+        var button = this;
+        var statusSpan = document.getElementById('refresh-niche-status');
+        var testResults = document.getElementById('test-results');
+        
+        // Désactiver le bouton et afficher le statut
+        button.disabled = true;
+        button.textContent = '🧪 Test en cours...';
+        statusSpan.textContent = 'Test de la détection améliorée...';
+        statusSpan.style.color = '#0073aa';
+        testResults.style.display = 'none';
+        
+        jQuery.ajax({
+            url: '<?php echo admin_url('admin-ajax.php'); ?>',
+            type: 'POST',
+            data: {
+                action: 'acg_test_niche_detection',
+                nonce: '<?php echo wp_create_nonce('test_niche_nonce'); ?>'
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Afficher les résultats du test
+                    document.getElementById('old-detection').textContent = response.data.old_niche.charAt(0).toUpperCase() + response.data.old_niche.slice(1);
+                    document.getElementById('new-detection').textContent = response.data.new_niche.charAt(0).toUpperCase() + response.data.new_niche.slice(1);
+                    
+                    testResults.style.display = 'block';
+                    
+                    if (response.data.old_niche !== response.data.new_niche) {
+                        statusSpan.textContent = '✅ Amélioration détectée ! La nouvelle méthode donne un résultat différent.';
+                        statusSpan.style.color = '#00a32a';
+                        document.getElementById('new-detection').style.color = '#00a32a';
+                        document.getElementById('new-detection').style.fontWeight = 'bold';
+                    } else {
+                        statusSpan.textContent = '👌 Même résultat avec la nouvelle méthode.';
+                        statusSpan.style.color = '#0073aa';
+                    }
+                } else {
+                    statusSpan.textContent = '❌ Erreur test : ' + (response.data.message || 'Impossible de tester');
+                    statusSpan.style.color = '#d63638';
+                }
+            },
+            error: function() {
+                statusSpan.textContent = '❌ Erreur de communication lors du test';
+                statusSpan.style.color = '#d63638';
+            },
+            complete: function() {
+                // Réactiver le bouton
+                button.disabled = false;
+                button.textContent = '🧪 Tester nouvelle détection';
             }
         });
     });
