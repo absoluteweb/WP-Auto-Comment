@@ -95,15 +95,129 @@ function acg_auto_comment_column_content($column_name, $post_id) {
     }
 }
 
-// Ajoute les colonnes à TOUS les post types publics (post, page, CPTs)
+// === ACTIONS EN LOT (BULK ACTIONS) ===
+
+// Ajouter les actions en lot au dropdown
+function acg_add_bulk_actions($bulk_actions) {
+    $bulk_actions['acg_enable_auto_comment'] = '✅ Activer commentaires automatiques';
+    $bulk_actions['acg_disable_auto_comment'] = '❌ Désactiver commentaires automatiques';
+    return $bulk_actions;
+}
+
+// Traiter les actions en lot
+function acg_handle_bulk_actions($redirect_to, $action, $post_ids) {
+    // Vérifier les permissions
+    if (!current_user_can('edit_posts')) {
+        return $redirect_to;
+    }
+    
+    // Vérifier les actions que nous gérons
+    if (!in_array($action, ['acg_enable_auto_comment', 'acg_disable_auto_comment'])) {
+        return $redirect_to;
+    }
+    
+    $processed = 0;
+    $enabled_value = ($action === 'acg_enable_auto_comment') ? '1' : '0';
+    
+    foreach ($post_ids as $post_id) {
+        // Vérifier que l'utilisateur peut modifier cet article
+        if (!current_user_can('edit_post', $post_id)) {
+            continue;
+        }
+        
+        // Mettre à jour la meta
+        update_post_meta($post_id, '_acg_auto_comment_enabled', $enabled_value);
+        $processed++;
+    }
+    
+    // Ajouter les paramètres de résultat à l'URL de redirection
+    $redirect_to = add_query_arg([
+        'acg_bulk_action' => $action,
+        'acg_processed' => $processed,
+        'acg_total' => count($post_ids)
+    ], $redirect_to);
+    
+    return $redirect_to;
+}
+
+// Afficher les notices de résultat des actions en lot
+function acg_bulk_action_admin_notice() {
+    if (!isset($_GET['acg_bulk_action']) || !isset($_GET['acg_processed'])) {
+        return;
+    }
+    
+    $action = sanitize_text_field($_GET['acg_bulk_action']);
+    $processed = intval($_GET['acg_processed']);
+    $total = intval($_GET['acg_total']);
+    
+    if ($processed == 0) {
+        echo '<div class="notice notice-warning is-dismissible"><p>';
+        echo '⚠️ Aucun article n\'a pu être traité. Vérifiez vos permissions.';
+        echo '</p></div>';
+        return;
+    }
+    
+    $skipped = $total - $processed;
+    
+    if ($action === 'acg_enable_auto_comment') {
+        $class = 'notice-success';
+        $icon = '✅';
+        $message = sprintf(
+            _n(
+                'Commentaires automatiques activés sur %s article.',
+                'Commentaires automatiques activés sur %s articles.',
+                $processed
+            ),
+            number_format_i18n($processed)
+        );
+    } else {
+        $class = 'notice-success';
+        $icon = '❌';
+        $message = sprintf(
+            _n(
+                'Commentaires automatiques désactivés sur %s article.',
+                'Commentaires automatiques désactivés sur %s articles.',
+                $processed
+            ),
+            number_format_i18n($processed)
+        );
+    }
+    
+    echo '<div class="notice ' . $class . ' is-dismissible"><p>';
+    echo $icon . ' ' . $message;
+    
+    if ($skipped > 0) {
+        echo ' <em>(' . sprintf(
+            _n(
+                '%s article ignoré par manque de permissions.',
+                '%s articles ignorés par manque de permissions.',
+                $skipped
+            ),
+            number_format_i18n($skipped)
+        ) . ')</em>';
+    }
+    
+    echo '</p></div>';
+}
+
+// Ajouter les colonnes et actions à TOUS les post types publics
 add_action('init', function () {
     $all_types = get_post_types(['public' => true, 'show_ui' => true]);
     foreach ($all_types as $post_type) {
+        // Colonnes
         add_filter("manage_{$post_type}_posts_columns", 'acg_add_auto_comment_column');
         add_action("manage_{$post_type}_posts_custom_column", 'acg_auto_comment_column_content', 10, 2);
+        
+        // Actions en lot
+        add_filter("bulk_actions-edit-{$post_type}", 'acg_add_bulk_actions');
+        add_filter("handle_bulk_actions-edit-{$post_type}", 'acg_handle_bulk_actions', 10, 3);
     }
 });
 
+// Notice d'admin pour les résultats des actions en lot
+add_action('admin_notices', 'acg_bulk_action_admin_notice');
+
+// === FONCTIONS AJAX EXISTANTES ===
 
 // enregistrer la valeur de la case à cocher en ajax
 function acg_save_auto_comment() {
@@ -117,7 +231,6 @@ function acg_save_auto_comment() {
 }
 
 add_action('wp_ajax_acg_save_auto_comment', 'acg_save_auto_comment');
-
 
 function acg_enqueue_auto_comment_script() {
     ?>

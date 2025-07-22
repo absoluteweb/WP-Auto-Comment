@@ -67,7 +67,7 @@ function acg_options_page() {
                             <input type="number" name="acg_comment_per_ip" value="<?php echo esc_attr(get_option('acg_comment_per_ip', 1)); ?>" min="1" max="10" style="width: 60px;" />
                             
                             <label style="margin-left: 20px;"><strong>Déclenchement toutes les :</strong></label>
-                            <input type="number" name="acg_interval_per_ip" value="<?php echo esc_attr(get_option('acg_interval_per_ip', 1)); ?>" min="1" max="100" style="width: 60px;" />
+                            <input type="number" name="acg_interval_per_ip" value="<?php echo esc_attr(get_option('acg_interval_per_ip', 1)); ?>" min="1" max="10000" style="width: 60px;" />
                             <span>IP uniques</span>
                         </div>
                         
