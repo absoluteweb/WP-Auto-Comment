@@ -1,0 +1,30 @@
+# Fichiers système macOS
+.DS_Store
+.DS_Store?
+._*
+
+# Fichiers temporaires Dreamweaver
+_notes/
+dwsync.xml
+
+# Fichiers temporaires Windows
+Thumbs.db
+ehthumbs.db
+
+# Fichiers temporaires IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+error_log
+
+# Cache WordPress
+wp-config-local.php
+.htaccess
+
+# Fichiers de sauvegarde
+*.bak
+*~ 
