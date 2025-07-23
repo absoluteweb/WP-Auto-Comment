@@ -94,13 +94,13 @@ function acg_options_page() {
                             
                             <?php if ($last_visitor_time > 0): ?>
                                 <p style="margin: 5px 0; font-size: 12px; color: #666;">
-                                    <strong>Dernière visite détectée :</strong> <?php echo date('d/m/Y à H:i:s', $last_visitor_time); ?>
+                                    <strong>Dernière visite détectée :</strong> <?php echo wp_date('d/m/Y à H:i:s', $last_visitor_time); ?>
                                 </p>
                             <?php endif; ?>
                             
                             <?php if ($last_comments_time > 0): ?>
                                 <p style="margin: 5px 0; font-size: 12px; color: #666;">
-                                    <strong>Derniers commentaires générés :</strong> <?php echo date('d/m/Y à H:i:s', $last_comments_time); ?>
+                                    <strong>Derniers commentaires générés :</strong> <?php echo wp_date('d/m/Y à H:i:s', $last_comments_time); ?>
                                 </p>
                             <?php endif; ?>
                             
@@ -186,7 +186,7 @@ function acg_options_page() {
                                 $use_ai_detection = get_option('acg_use_ai_niche_detection', 1);
                                 if ($cache_timestamp > 0 && $use_ai_detection): 
                                 ?>
-                                    <small style="color: #666;">(Analysé par OpenAI le <?php echo date('d/m/Y à H:i', $cache_timestamp); ?>)</small>
+                                    <small style="color: #666;">(Analysé par OpenAI le <?php echo wp_date('d/m/Y à H:i', $cache_timestamp); ?>)</small>
                                 <?php else: ?>
                                     <small style="color: #666;">(Détection locale par mots-clés)</small>
                                 <?php endif; ?>
